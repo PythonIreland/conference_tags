@@ -38,10 +38,10 @@ width, height = A4
 
 section_width = width / 2.0
 section_height = height / 2.0
-
+page_margin_left = page_margin_right = page_margin_top = page_margin_bottom = .5 * cm
 margin_left = margin_right = margin_top = margin_bottom = .5 * cm
-section_write_width = section_width - margin_left - margin_right
-section_write_height = section_height - margin_top - margin_bottom
+section_write_width = section_width - margin_left
+section_write_height = section_height - margin_top
 
 
 def make_batches(iterable, n):
@@ -63,7 +63,15 @@ def get_value(data):
             yield (i + nb_pages, data[i + nb_pages])
 
 
-def write_ticket_num(ticket_num):
+def get_font_size(font_size, fontname):
+    face = pdfmetrics.getFont(fontname).face
+    ascent = (face.ascent * font_size) / 1000.0
+    descent = (face.descent * font_size) / 1000.0
+    height = ascent - descent  # <-- descent it's negative
+    return height
+
+
+def write_ticket_num(ticket_num, pos):
     canvas.saveState()
 
     t = canvas.beginText()
@@ -79,13 +87,22 @@ def write_ticket_num(ticket_num):
     canvas.setFont('ubuntu', font_size)
     text_w = stringWidth(ticket_num, 'ubuntu', font_size)
     x_pos = 2 * margin_left
-    canvas.drawString(x_pos, section_height - 32, ticket_num)
+    y_pos = section_height - 32  # if pos else -page_margin_top + section_height - 32
+
+    canvas.drawString(x_pos, y_pos, ticket_num)
     canvas.rotate(-90)
     canvas.drawString(-text_w - 2 * margin_bottom, section_width - 32, ticket_num)
     canvas.restoreState()
 
 
-def write_qr_code(delegate, order_num):
+def write_qr_code(delegate, order_num, pos):
+    """
+
+    :param delegate: delegate object
+    :param order_num: serial to ease manual ordering
+    :param pos: top or bottom part of A4 (0=top)
+    :return:
+    """
     qr_code = qr.QrCodeWidget('{} <{}>'.format(
         delegate.full_name, delegate.email), barLevel='H')
     bounds = qr_code.getBounds()
@@ -94,18 +111,21 @@ def write_qr_code(delegate, order_num):
     qr_size = 200.0
     d = Drawing(qr_size, qr_size, transform=[qr_size / qr_width, 0, 0, qr_size / qr_height, 0, 0])
     d.add(qr_code)
-    renderPDF.draw(d, canvas, (section_width - qr_size) / 2.0, (section_height - qr_size) / 2.0)
+    local_section_height = section_height + margin_top * pos
+    renderPDF.draw(d, canvas,
+                   (section_width - qr_size) / 2.0,
+                   (local_section_height - qr_size) / 2.0)
 
     logo_width = 60
     logo_height = 60
     canvas.drawImage(os.path.join(here, "logo_in_qrcode_2.png"),
-                     margin_left + (section_write_width - logo_width) / 2.0,
-                     (section_height - logo_height) / 2.0,
+                     (section_width - logo_width) / 2.0,
+                     (local_section_height - logo_height) / 2.0,
                      width=logo_width, height=logo_height,
                      mask='auto')
 
     # ticket num
-    write_ticket_num(delegate.reference)
+    write_ticket_num(delegate.reference, pos)
 
     canvas.saveState()
 
@@ -122,13 +142,13 @@ def write_qr_code(delegate, order_num):
     font_size = 28
     canvas.setFont('ubuntu', font_size)
     text_w = stringWidth(order_num, 'ubuntu', font_size)
-    x_pos = section_write_width - text_w - margin_right
+    x_pos = -local_section_height + text_w + 2 * margin_top
     canvas.rotate(-90)
-    canvas.drawString(-section_height + text_w + 2 * margin_top, section_width - 32, order_num)
+    canvas.drawString(x_pos, section_width - 32, order_num)
     canvas.restoreState()
 
 
-def write_badge(delegate):
+def write_badge(delegate, pos):
     # TODO manage margins
     t = canvas.beginText()
     t.setTextRenderMode(2)
@@ -140,7 +160,7 @@ def write_badge(delegate):
     canvas.drawImage(
         os.path.join(here, "dublin_banner_2.jpg"),
         margin_left,
-        (section_height - margin_top - logo_height),
+        (section_height - pos * margin_top - logo_height),
         # TODO will need to trim an horizontal slice from banner
         width=logo_width, height=logo_height,
         mask='auto')
@@ -154,7 +174,7 @@ def write_badge(delegate):
     python = "Pycon Ireland 2018"
     text_w = stringWidth(python, 'BreeB', 32)
     x_pos = (section_write_width - text_w) / 2
-    canvas.drawString(margin_left + x_pos, section_height - 60, python)
+    canvas.drawString(margin_left + x_pos, section_height - 55, python)
 
     # logo
     logo_width = logo_height = 110
@@ -171,21 +191,20 @@ def write_badge(delegate):
     canvas.setLineWidth(0.7)
 
     font_size = 32
-    canvas.setFont('Bree', font_size)
+    fontname = 'Bree'
+
+    canvas.setFont(fontname, font_size)
     text_w = stringWidth(delegate.display_name, 'Bree', font_size)
     # resize as necessary to fit
     while text_w > section_write_width:
         font_size -= 1
-        canvas.setFont('Bree', font_size)
+        canvas.setFont(fontname, font_size)
         text_w = stringWidth(delegate.display_name, 'Bree', font_size)
     x_pos = margin_left + (section_write_width - text_w) / 2
 
-    fontname = 'Bree'
-    face = pdfmetrics.getFont(fontname).face
-    ascent = (face.ascent * font_size) / 1000.0
-    descent = (face.descent * font_size) / 1000.0
-    height = ascent - descent  # <-- descent it's negative
-    y_pos = margin_bottom / 2.0 + section_height / 4.0 - height / 4.0
+    height = get_font_size(font_size, fontname)
+
+    y_pos = (0 if pos else margin_bottom) / 2.0 + section_height * .25 - height / 4.0
 
     canvas.drawString(x_pos, y_pos, delegate.display_name)
 
@@ -214,18 +233,19 @@ def write_badge(delegate):
             canvas.setFillColor(irish_orange)
         else:
             canvas.setFillColor(banner_blue)
-        canvas.rect(margin_left, margin_bottom, section_write_width, border_thickness, fill=1, stroke=0)
+        canvas.rect(margin_left, 0 if pos else margin_bottom,
+                    section_write_width, border_thickness, fill=1, stroke=0)
 
         # level
         logo_width = logo_height = 30
         power_size = logo_width * delegate.level + 5 * (delegate.level - 1)
-        power_start_x = (margin_left + section_write_width - power_size) / 2.0
+        power_start_x = (margin_left + section_width - power_size) / 2.0
         for i in range(delegate.level):
             canvas.drawImage(
                 os.path.join(here, "Psf-Logo.png"),
                 power_start_x + (logo_width + 5) * i,
                 # (section_write_width - logo_width) / 2.0,
-                margin_bottom + (border_thickness - logo_height) / 2.0,
+                (0 if pos else margin_bottom) + (border_thickness - logo_height) / 2.0,
                 width=logo_width, height=logo_height,
                 mask='auto')
 
@@ -249,26 +269,34 @@ def draw_guidelines():
 
 
 def draw_margins():
-    # margins
+    canvas.setDash(1, 0)
+    # page border
+    canvas.line(0, 0, width, 0)
+    canvas.line(0, 0, 0, height)
+    canvas.line(0, height, width, height)
+    canvas.line(width, 0, width, height)
+
     canvas.setDash(1, 4)
-    # main
-    canvas.line(margin_left, 0, margin_left, height)
-    canvas.line(width - margin_right, 0, width - margin_right, height)
-    canvas.line(0, margin_bottom, width, margin_bottom)
-    canvas.line(0, height - margin_top, width, height - margin_top)
-    # inner
-    middle_width, middle_height = width / 2.0, height / 2.0
-    canvas.line(middle_width + margin_left, 0, middle_width + margin_left, height)
-    canvas.line(middle_width - margin_right, 0, middle_width - margin_right, height)
-    canvas.line(0, middle_height + margin_bottom, width, middle_height + margin_bottom)
-    canvas.line(0, middle_height - margin_top, width, middle_height - margin_top)
+    canvas.line(width / 2.0 - margin_right, 0, width / 2.0 - margin_right, height)
+    canvas.line(width / 2.0 + margin_left, 0, width / 2.0 + margin_left, height)
+    canvas.line(0, height / 2.0 + margin_bottom, width, height / 2.0 + margin_bottom)
+    canvas.line(0, height / 2.0 - margin_top, width, height / 2.0 - margin_top)
 
     canvas.setDash(1, 0)
 
 
-def create_badges(data):
-    # canvas.translate(0, section_height)
+def draw_cutlines():
+    # halves
+    canvas.setDash(1, 0)
+    canvas.line(0, height / 2.0, width, height / 2.0)
+    canvas.setDash(3, 6)
 
+    canvas.line(width / 2.0, 0, width / 2.0, height)
+    canvas.setDash(1, 0)
+
+
+def create_badges(data):
+    # 2 per page, targeting A4
     for batch in make_batches(get_value(data), 2):
 
         # fold & cut helpers
@@ -278,15 +306,17 @@ def create_badges(data):
         canvas.line(0, section_height, width, section_height)  # horizontal
 
         canvas.setDash(1, 0)
+
         # draw_margins()
+        draw_cutlines()
         # draw_guidelines()
 
-        canvas.translate(0, section_height)
-        for ticket_index, attendee in batch:
-            write_qr_code(attendee, ticket_index)
-            canvas.translate(section_width, 0)
-            write_badge(attendee)
-            canvas.translate(-section_width, -section_height)
+        canvas.translate(0, height / 2.0)
+        for pos, (ticket_index, attendee) in enumerate(batch):
+            write_qr_code(attendee, ticket_index, pos % 2)
+            canvas.translate(width / 2.0, 0)
+            write_badge(attendee, pos % 2)
+            canvas.translate(-width / 2.0, -height / 2.0)
         canvas.showPage()  # finish the page, next statements should go next page
     canvas.save()
 
@@ -294,7 +324,8 @@ def create_badges(data):
 data = sorted([
     Attendee('Nïçôlàs L.', 'Nïçôlàs ', 'test@example.ie', '1IO0-1', 0, True),
     Attendee('Ipsum L.', 'Lorem ', 'test@example.ie', 'ABCD', 1, False),
-    # Attendee('Lorem L.', 'Nicolas ', 'speaker@example.ie', 'KSDF', 2, False),
+    Attendee('Lorem L.', 'Nicolas ', 'speaker@example.ie', 'KSDF', 2, False),
+    Attendee('Vishal V.', 'doomsday', 'mad_devop@example.ie', 'OPPP-1', 7, False),
     # Attendee('Sic amen L.', 'Nicolas ', 'organizer@example.ie', 'OPPP-1', 3, False),
     # Attendee('Nijwcolas L.', 'Nicolas ', 'test@example.ie', 'Z2B8-2', 4, False),
     # Attendee('Dolor L.', 'Nicolas ', 'test@example.ie', 'ZWWX-1', 0, False),
