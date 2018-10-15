@@ -18,7 +18,9 @@ base_url = 'https://api.tito.io/v2/{account}/{event}'.format(
     event=event,
 )
 
-Attendee = namedtuple('Attendee', ('display_name', 'full_name', 'email', 'reference', 'level', 'exhibitor'))
+Attendee = namedtuple('Attendee',
+                      ('display_name', 'full_name',
+                       'email', 'reference', 'level', 'exhibitor'))
 
 registration_url = base_url + "/tickets"
 headers = {'Authorization': token,
