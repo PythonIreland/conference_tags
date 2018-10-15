@@ -87,7 +87,7 @@ def write_ticket_num(ticket_num, pos):
     canvas.setFont('ubuntu', font_size)
     text_w = stringWidth(ticket_num, 'ubuntu', font_size)
     x_pos = 2 * margin_left
-    y_pos = section_height - 32  # if pos else -page_margin_top + section_height - 32
+    y_pos = section_height - 20 - (margin_top * pos)
 
     canvas.drawString(x_pos, y_pos, ticket_num)
     canvas.rotate(-90)
@@ -113,13 +113,13 @@ def write_qr_code(delegate, order_num, pos):
     d.add(qr_code)
     local_section_height = section_height + margin_top * pos
     renderPDF.draw(d, canvas,
-                   (section_width - qr_size) / 2.0,
+                   (section_width - margin_left - qr_size) / 2.0,
                    (local_section_height - qr_size) / 2.0)
 
     logo_width = 60
     logo_height = 60
     canvas.drawImage(os.path.join(here, "logo_in_qrcode_2.png"),
-                     (section_width - logo_width) / 2.0,
+                     (section_width - margin_left - logo_width) / 2.0,
                      (local_section_height - logo_height) / 2.0,
                      width=logo_width, height=logo_height,
                      mask='auto')
@@ -142,9 +142,13 @@ def write_qr_code(delegate, order_num, pos):
     font_size = 28
     canvas.setFont('ubuntu', font_size)
     text_w = stringWidth(order_num, 'ubuntu', font_size)
+
+    canvas.drawString(section_width - margin_left - text_w,
+                      section_height - 20 - (margin_top * pos), order_num)
+
     x_pos = -local_section_height + text_w + 2 * margin_top
     canvas.rotate(-90)
-    canvas.drawString(x_pos, section_width - 32, order_num)
+    canvas.drawString(x_pos+40, section_width - 32, order_num)
     canvas.restoreState()
 
 
