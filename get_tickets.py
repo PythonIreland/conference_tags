@@ -22,7 +22,8 @@ Attendee = namedtuple('Attendee', ('display_name', 'full_name', 'email', 'refere
 
 registration_url = base_url + "/tickets"
 headers = {'Authorization': token,
-           'Accept': 'application / vnd.api + json'}
+           'Accept': 'application / vnd.api + json'
+           }
 
 experiences = {
     'Beginner': 1,
@@ -32,7 +33,7 @@ experiences = {
 }
 
 # ticket release, last part of ticket url
-exhibitors_tickets = os.getenv('EXHIBITORS').split(',')
+exhibitors_tickets = os.getenv('EXHIBITORS', '').split(',')
 
 
 def get_delegates():
@@ -67,7 +68,5 @@ def get_delegates():
 
     return sorted(delegates, key=lambda x: x.reference)
 
-
 # as_of_now = get_delegates()
 # pprint(as_of_now)
-
