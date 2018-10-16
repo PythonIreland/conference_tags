@@ -125,7 +125,7 @@ def write_qr_code(delegate, order_num):
 
     logo_width = 60
     logo_height = 60
-    canvas.drawImage(os.path.join(here, "logo_in_qrcode_2.png"),
+    canvas.drawImage(os.path.join(here, 'img', "logo_in_qrcode_2.png"),
                      (section_width - logo_width) / 2.0,
                      (section_height - logo_height) / 2.0,
                      width=logo_width, height=logo_height,
@@ -168,7 +168,7 @@ def write_badge(delegate):
     banner_width = section_width
     banner_height = section_height * .3333
     canvas.drawImage(
-        os.path.join(here, "dublin_banner_2.jpg"),
+        os.path.join(here, 'img',"dublin_banner_2.jpg"),
         0, section_height - banner_height,
         width=banner_width, height=banner_height,
         mask='auto')
@@ -187,7 +187,7 @@ def write_badge(delegate):
     # logo
     logo_width = logo_height = 110
     canvas.drawImage(
-        os.path.join(here, "logo4.png"),
+        os.path.join(here, 'img', "logo4.png"),
         (section_width - logo_width) / 2.0,
         (section_height - logo_height) / 2.0,  # vertical offset of logo here is needed
         width=logo_width, height=logo_height,
@@ -247,7 +247,7 @@ def write_badge(delegate):
         power_start_x = (section_width - power_size) / 2.0
         for i in range(delegate.level):
             canvas.drawImage(
-                os.path.join(here, "Psf-Logo.png"),
+                os.path.join(here,  'img',"Psf-Logo.png"),
                 power_start_x + (logo_width + 5) * i,
                 (section_height / 6 - logo_height) / 2.0,
                 width=logo_width, height=logo_height,
