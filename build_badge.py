@@ -37,7 +37,7 @@ irish_green = PCMYKColor(71, 0, 72, 40)
 irish_orange = PCMYKColor(0, 43, 91, 0)
 banner_blue = PCMYKColor(98, 82, 0, 44)
 
-paper_size = A4
+paper_size = A5
 
 if paper_size == A4:
     canvas = canvas.Canvas("tickets.pdf", pagesize=portrait(A4))
@@ -47,7 +47,6 @@ if paper_size == A4:
 elif paper_size == A5:
     canvas = canvas.Canvas("tickets.pdf", pagesize=landscape(A5))
     height, width = A5
-    print(width, height)
     margin = 0
     badge_per_sheet = 1
 else:
@@ -135,7 +134,7 @@ def write_qr_code(delegate, order_num):
     logo_width = 60
     logo_height = 60
     canvas.drawImage(
-        os.path.join(here, "img", "logo_in_qrcode_2.png"),
+        os.path.join(here, "img", "logo_in_qrcode.png"),
         (section_width - logo_width) / 2.0,
         (section_height - logo_height) / 2.0,
         width=logo_width,
