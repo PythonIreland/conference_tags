@@ -20,12 +20,16 @@ from get_tickets import Attendee
 from get_tickets import get_delegates
 
 reportlab.rl_config.warnOnMissingFontGlyphs = 0
-pdfmetrics.registerFont(TTFont('ubuntu', './fonts/UbuntuMono-R.ttf'))
-pdfmetrics.registerFont(TTFont('Bree', './fonts/BreeSerif-Regular.ttf'))
-pdfmetrics.registerFont(TTFont('BreeB', './fonts/BreeBold.ttf'))
+pdfmetrics.registerFont(TTFont("ubuntu", "./fonts/UbuntuMono-R.ttf"))
+pdfmetrics.registerFont(TTFont("Bree", "./fonts/BreeSerif-Regular.ttf"))
+pdfmetrics.registerFont(TTFont("BreeB", "./fonts/BreeBold.ttf"))
 
-registerFontFamily('Bree', normal='Bree', bold='BreeB', italic='Bree', boldItalic='BreeB')
-registerFontFamily('ubuntu', normal='ubuntu', bold='ubuntu', italic='ubuntu', boldItalic='ubuntu')
+registerFontFamily(
+    "Bree", normal="Bree", bold="BreeB", italic="Bree", boldItalic="BreeB"
+)
+registerFontFamily(
+    "ubuntu", normal="ubuntu", bold="ubuntu", italic="ubuntu", boldItalic="ubuntu"
+)
 
 here = os.path.dirname(__file__)
 
@@ -36,18 +40,18 @@ banner_blue = PCMYKColor(98, 82, 0, 44)
 paper_size = A4
 
 if paper_size == A4:
-    canvas = canvas.Canvas('tickets.pdf', pagesize=portrait(A4))
+    canvas = canvas.Canvas("tickets.pdf", pagesize=portrait(A4))
     width, height = A4
     margin = .5 * cm
     badge_per_sheet = 2
 elif paper_size == A5:
-    canvas = canvas.Canvas('tickets.pdf', pagesize=landscape(A5))
+    canvas = canvas.Canvas("tickets.pdf", pagesize=landscape(A5))
     height, width = A5
     print(width, height)
     margin = 0
     badge_per_sheet = 1
 else:
-    raise ValueError('what size is that?')
+    raise ValueError("what size is that?")
 
 section_width = width / 2.0 - margin
 section_height = height / (2.0 if paper_size == A4 else 1) - margin
@@ -93,8 +97,8 @@ def write_ticket_num(ticket_num):
     canvas.setLineWidth(0.5)
 
     font_size = 28
-    canvas.setFont('ubuntu', font_size)
-    text_w = stringWidth(ticket_num, 'ubuntu', font_size)
+    canvas.setFont("ubuntu", font_size)
+    text_w = stringWidth(ticket_num, "ubuntu", font_size)
     y_pos = section_height - 20
 
     canvas.drawString(0, y_pos, ticket_num)
@@ -111,25 +115,33 @@ def write_qr_code(delegate, order_num):
     :param pos: top or bottom part of A4 (0=top)
     :return:
     """
-    qr_code = qr.QrCodeWidget('{} <{}>'.format(
-        delegate.full_name, delegate.email), barLevel='H')
+    qr_code = qr.QrCodeWidget(
+        "{} <{}>".format(delegate.full_name, delegate.email), barLevel="H"
+    )
     bounds = qr_code.getBounds()
     qr_width = bounds[2] - bounds[0]
     qr_height = bounds[3] - bounds[1]
     qr_size = 200.0
-    d = Drawing(qr_size, qr_size, transform=[qr_size / qr_width, 0, 0, qr_size / qr_height, 0, 0])
+    d = Drawing(
+        qr_size,
+        qr_size,
+        transform=[qr_size / qr_width, 0, 0, qr_size / qr_height, 0, 0],
+    )
     d.add(qr_code)
-    renderPDF.draw(d, canvas,
-                   (section_width - qr_size) / 2.0,
-                   (section_height - qr_size) / 2.0)
+    renderPDF.draw(
+        d, canvas, (section_width - qr_size) / 2.0, (section_height - qr_size) / 2.0
+    )
 
     logo_width = 60
     logo_height = 60
-    canvas.drawImage(os.path.join(here, 'img', "logo_in_qrcode_2.png"),
-                     (section_width - logo_width) / 2.0,
-                     (section_height - logo_height) / 2.0,
-                     width=logo_width, height=logo_height,
-                     mask='auto')
+    canvas.drawImage(
+        os.path.join(here, "img", "logo_in_qrcode_2.png"),
+        (section_width - logo_width) / 2.0,
+        (section_height - logo_height) / 2.0,
+        width=logo_width,
+        height=logo_height,
+        mask="auto",
+    )
 
     # ticket num
     write_ticket_num(delegate.reference)
@@ -147,11 +159,10 @@ def write_qr_code(delegate, order_num):
 
     order_num = str(order_num)
     font_size = 28
-    canvas.setFont('ubuntu', font_size)
-    text_w = stringWidth(order_num, 'ubuntu', font_size)
+    canvas.setFont("ubuntu", font_size)
+    text_w = stringWidth(order_num, "ubuntu", font_size)
 
-    canvas.drawString(section_width - text_w,
-                      section_height - 20, order_num)
+    canvas.drawString(section_width - text_w, section_height - 20, order_num)
 
     x_pos = -(section_height + text_w) / 2.0
     canvas.rotate(-90)
@@ -168,30 +179,35 @@ def write_badge(delegate):
     banner_width = section_width
     banner_height = section_height * .3333
     canvas.drawImage(
-        os.path.join(here, 'img',"dublin_banner_2.jpg"),
-        0, section_height - banner_height,
-        width=banner_width, height=banner_height,
-        mask='auto')
+        os.path.join(here, "img", "dublin_banner_2.jpg"),
+        0,
+        section_height - banner_height,
+        width=banner_width,
+        height=banner_height,
+        mask="auto",
+    )
 
     # Conference name and year
-    canvas.setFont('BreeB', 32)
+    canvas.setFont("BreeB", 32)
     canvas.setStrokeColor(white)
     canvas.setFillColor(irish_green)
     canvas.setLineWidth(1.3)
 
     python = "Pycon Ireland 2018"
-    text_w = stringWidth(python, 'BreeB', 32)
+    text_w = stringWidth(python, "BreeB", 32)
     x_pos = (section_width - text_w) / 2
     canvas.drawString(x_pos, section_height - 55, python)
 
     # logo
     logo_width = logo_height = 110
     canvas.drawImage(
-        os.path.join(here, 'img', "logo4.png"),
+        os.path.join(here, "img", "logo4.png"),
         (section_width - logo_width) / 2.0,
         (section_height - logo_height) / 2.0,  # vertical offset of logo here is needed
-        width=logo_width, height=logo_height,
-        mask='auto')
+        width=logo_width,
+        height=logo_height,
+        mask="auto",
+    )
 
     # delegate name
     canvas.setStrokeColor(black)
@@ -199,47 +215,43 @@ def write_badge(delegate):
     canvas.setLineWidth(0.7)
 
     font_size = 32
-    fontname = 'Bree'
+    fontname = "Bree"
 
     canvas.setFont(fontname, font_size)
-    text_w = stringWidth(delegate.display_name, 'Bree', font_size)
+    text_w = stringWidth(delegate.display_name, "Bree", font_size)
     # resize as necessary to fit
     while text_w > section_width:
         font_size -= 1
         canvas.setFont(fontname, font_size)
-        text_w = stringWidth(delegate.display_name, 'Bree', font_size)
+        text_w = stringWidth(delegate.display_name, "Bree", font_size)
     x_pos = (section_width - text_w) / 2
 
     height = get_font_size(font_size, fontname)
-    y_pos = (section_height * .25 - height / 4.0)
+    y_pos = section_height * .25 - height / 4.0
     canvas.drawString(x_pos, y_pos, delegate.display_name)
 
-    speakers = [
-        "speaker@example.ie"
-    ]
+    speakers = ["speaker@example.ie"]
 
     # rectangle bottom
     border_thickness = section_height / 6.0
     if delegate.exhibitor:
-        canvas.rect(0, 0,
-                    section_width, border_thickness, fill=1, stroke=0)
+        canvas.rect(0, 0, section_width, border_thickness, fill=1, stroke=0)
         canvas.setStrokeColor(black)
         canvas.setFillColor(white)
         canvas.setLineWidth(0.7)
 
         font_size = 32
-        canvas.setFont('Bree', font_size)
-        text_w = stringWidth('EXHIBITOR', 'Bree', font_size)
+        canvas.setFont("Bree", font_size)
+        text_w = stringWidth("EXHIBITOR", "Bree", font_size)
         x_pos = (section_width - text_w) / 2
-        canvas.drawString(x_pos, 25, 'EXHIBITOR')
+        canvas.drawString(x_pos, 25, "EXHIBITOR")
 
     else:
         if delegate.email in speakers:
             canvas.setFillColor(irish_orange)
         else:
             canvas.setFillColor(banner_blue)
-        canvas.rect(0, 0,
-                    section_width, border_thickness, fill=1, stroke=0)
+        canvas.rect(0, 0, section_width, border_thickness, fill=1, stroke=0)
 
         # level
         logo_width = logo_height = 30
@@ -247,11 +259,13 @@ def write_badge(delegate):
         power_start_x = (section_width - power_size) / 2.0
         for i in range(delegate.level):
             canvas.drawImage(
-                os.path.join(here,  'img',"Psf-Logo.png"),
+                os.path.join(here, "img", "Psf-Logo.png"),
                 power_start_x + (logo_width + 5) * i,
                 (section_height / 6 - logo_height) / 2.0,
-                width=logo_width, height=logo_height,
-                mask='auto')
+                width=logo_width,
+                height=logo_height,
+                mask="auto",
+            )
 
 
 def draw_guidelines():
@@ -263,11 +277,13 @@ def draw_guidelines():
     canvas.line(0, section_height * .75, width, section_height * .75)
     canvas.line(0, section_height * .875, width, section_height * .875)
     canvas.setDash(2, 2)
-    canvas.line(0, margin + section_height / 6.0,
-                width, margin + section_height / 6.0)  # horizontal
+    canvas.line(
+        0, margin + section_height / 6.0, width, margin + section_height / 6.0
+    )  # horizontal
     canvas.line(0, section_height * .3333, width, section_height * .3333)  # horizontal
-    canvas.line(0, margin + section_height * .6666, width,
-                margin + section_height * .6666)  # horizontal
+    canvas.line(
+        0, margin + section_height * .6666, width, margin + section_height * .6666
+    )  # horizontal
 
     canvas.setDash(1, 0)
 
@@ -326,14 +342,17 @@ def create_badges(data):
     canvas.save()
 
 
-data = sorted([
-    Attendee('Nïçôlàs L.', 'Nïçôlàs ', 'test@example.ie', '1IO0-1', 0, True),
-    Attendee('Ipsum L.', 'Lorem ', 'test@example.ie', 'ABCD', 1, False),
-    Attendee('Lorem L.', 'Nicolas ', 'speaker@example.ie', 'KSDF', 2, False),
-    # Attendee('Vishal V.', 'doomsday', 'mad_devop@example.ie', 'OPPP-1', 7, False),
-    # Attendee('Sic amen L.', 'Nicolas ', 'organizer@example.ie', 'OPPP-1', 3, False),
-    # Attendee('Nijwcolas L.', 'Nicolas ', 'test@example.ie', 'Z2B8-2', 4, False),
-    # Attendee('Dolor L.', 'Nicolas ', 'test@example.ie', 'ZWWX-1', 0, False),
-], key=lambda x: x.reference)
+data = sorted(
+    [
+        Attendee("Nïçôlàs L.", "Nïçôlàs ", "test@example.ie", "1IO0-1", 0, True),
+        Attendee("Ipsum L.", "Lorem ", "test@example.ie", "ABCD", 1, False),
+        Attendee("Lorem L.", "Nicolas ", "speaker@example.ie", "KSDF", 2, False),
+        # Attendee('Vishal V.', 'doomsday', 'mad_devop@example.ie', 'OPPP-1', 7, False),
+        # Attendee('Sic amen L.', 'Nicolas ', 'organizer@example.ie', 'OPPP-1', 3, False),
+        # Attendee('Nijwcolas L.', 'Nicolas ', 'test@example.ie', 'Z2B8-2', 4, False),
+        # Attendee('Dolor L.', 'Nicolas ', 'test@example.ie', 'ZWWX-1', 0, False),
+    ],
+    key=lambda x: x.reference,
+)
 
 create_badges(data)

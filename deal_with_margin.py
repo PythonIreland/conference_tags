@@ -22,19 +22,23 @@ from get_tickets import get_delegates
 # set firring to None
 
 reportlab.rl_config.warnOnMissingFontGlyphs = 0
-pdfmetrics.registerFont(TTFont('ubuntu', './fonts/UbuntuMono-R.ttf'))
-pdfmetrics.registerFont(TTFont('Bree', './fonts/BreeSerif-Regular.ttf'))
-pdfmetrics.registerFont(TTFont('BreeB', './fonts/BreeBold.ttf'))
+pdfmetrics.registerFont(TTFont("ubuntu", "./fonts/UbuntuMono-R.ttf"))
+pdfmetrics.registerFont(TTFont("Bree", "./fonts/BreeSerif-Regular.ttf"))
+pdfmetrics.registerFont(TTFont("BreeB", "./fonts/BreeBold.ttf"))
 
-registerFontFamily('Bree', normal='Bree', bold='BreeB', italic='Bree', boldItalic='BreeB')
-registerFontFamily('ubuntu', normal='ubuntu', bold='ubuntu', italic='ubuntu', boldItalic='ubuntu')
+registerFontFamily(
+    "Bree", normal="Bree", bold="BreeB", italic="Bree", boldItalic="BreeB"
+)
+registerFontFamily(
+    "ubuntu", normal="ubuntu", bold="ubuntu", italic="ubuntu", boldItalic="ubuntu"
+)
 
 here = os.path.dirname(__file__)
 
 irish_green = PCMYKColor(71, 0, 72, 40)
 irish_orange = PCMYKColor(0, 43, 91, 0)
 
-canvas = canvas.Canvas('margins.pdf', pagesize=A4)
+canvas = canvas.Canvas("margins.pdf", pagesize=A4)
 width, height = A4
 margin = .5 * cm
 section_width = width / 2.0 - margin
@@ -48,8 +52,6 @@ def make_batches(iterable, n):
     for item in iterable:
         rest = itertools.islice(iterable, n_rest)
         yield itertools.chain((item,), rest)
-
-
 
 
 def draw_margins():
@@ -81,17 +83,13 @@ def draw_margins():
 def write_qr_code(attendee, ticket_index):
     canvas.setStrokeColor(black)
     canvas.setFillColor(irish_green)
-    canvas.rect(0, 0,
-                section_width, section_height,
-                fill=1, stroke=0)
+    canvas.rect(0, 0, section_width, section_height, fill=1, stroke=0)
 
 
 def write_badge(attendee):
     canvas.setStrokeColor(black)
     canvas.setFillColor(irish_orange)
-    canvas.rect(0, 0,
-                section_width, section_height,
-                fill=1, stroke=0)
+    canvas.rect(0, 0, section_width, section_height, fill=1, stroke=0)
 
 
 def create_badges(data):
@@ -118,8 +116,4 @@ def create_badges(data):
     canvas.save()
 
 
-create_badges([
-    (1, 2),
-    (3, 4),
-    (5, 6),
-])
+create_badges([(1, 2), (3, 4), (5, 6)])
