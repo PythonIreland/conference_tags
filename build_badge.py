@@ -3,7 +3,7 @@ import math
 import os
 
 import reportlab.rl_config
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, A5, portrait, landscape
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase.pdfmetrics import registerFontFamily
 from reportlab.pdfbase.pdfmetrics import stringWidth
@@ -33,11 +33,24 @@ irish_green = PCMYKColor(71, 0, 72, 40)
 irish_orange = PCMYKColor(0, 43, 91, 0)
 banner_blue = PCMYKColor(98, 82, 0, 44)
 
-canvas = canvas.Canvas('tickets.pdf', pagesize=A4)
-width, height = A4
-margin = .5 * cm
+paper_size = A4
+
+if paper_size == A4:
+    canvas = canvas.Canvas('tickets.pdf', pagesize=portrait(A4))
+    width, height = A4
+    margin = .5 * cm
+    badge_per_sheet = 2
+elif paper_size == A5:
+    canvas = canvas.Canvas('tickets.pdf', pagesize=landscape(A5))
+    height, width = A5
+    print(width, height)
+    margin = 0
+    badge_per_sheet = 1
+else:
+    raise ValueError('what size is that?')
+
 section_width = width / 2.0 - margin
-section_height = height / 2.0 - margin
+section_height = height / (2.0 if paper_size == A4 else 1) - margin
 
 
 def make_batches(iterable, n):
@@ -86,7 +99,7 @@ def write_ticket_num(ticket_num):
 
     canvas.drawString(0, y_pos, ticket_num)
     canvas.rotate(-90)
-    canvas.drawString(-text_w, section_width -20, ticket_num)
+    canvas.drawString(-text_w, section_width - 20, ticket_num)
     canvas.restoreState()
 
 
@@ -138,9 +151,9 @@ def write_qr_code(delegate, order_num):
     text_w = stringWidth(order_num, 'ubuntu', font_size)
 
     canvas.drawString(section_width - text_w,
-                      section_height - 20 , order_num)
+                      section_height - 20, order_num)
 
-    x_pos = (-section_height +text_w)/2.0
+    x_pos = -(section_height + text_w) / 2.0
     canvas.rotate(-90)
     canvas.drawString(x_pos, section_width - 20, order_num)
     canvas.restoreState()
@@ -218,7 +231,7 @@ def write_badge(delegate):
         canvas.setFont('Bree', font_size)
         text_w = stringWidth('EXHIBITOR', 'Bree', font_size)
         x_pos = (section_width - text_w) / 2
-        canvas.drawString(x_pos, 25 , 'EXHIBITOR')
+        canvas.drawString(x_pos, 25, 'EXHIBITOR')
 
     else:
         if delegate.email in speakers:
@@ -236,7 +249,7 @@ def write_badge(delegate):
             canvas.drawImage(
                 os.path.join(here, "Psf-Logo.png"),
                 power_start_x + (logo_width + 5) * i,
-                (section_height/6 - logo_height) / 2.0,
+                (section_height / 6 - logo_height) / 2.0,
                 width=logo_width, height=logo_height,
                 mask='auto')
 
@@ -259,7 +272,7 @@ def draw_guidelines():
     canvas.setDash(1, 0)
 
 
-def draw_margins():
+def draw_page_borders():
     canvas.setDash(1, 0)
     # page border
     canvas.line(0, 0, width, 0)
@@ -267,6 +280,8 @@ def draw_margins():
     canvas.line(0, height, width, height)
     canvas.line(width, 0, width, height)
 
+
+def draw_margins():
     canvas.setDash(1, 4)
     canvas.line(width / 2.0 - margin, 0, width / 2.0 - margin, height)
     canvas.line(width / 2.0 + margin, 0, width / 2.0 + margin, height)
@@ -278,23 +293,27 @@ def draw_margins():
 
 def draw_cutlines():
     # halves
-    canvas.setDash(1, 0)
-    canvas.line(0, height / 2.0, width, height / 2.0)
-    canvas.setDash(3, 6)
+    if paper_size == A4:
+        canvas.setDash(1, 0)
+        canvas.line(0, height / 2.0, width, height / 2.0)
 
+    canvas.setDash(3, 6)
     canvas.line(width / 2.0, 0, width / 2.0, height)
+
     canvas.setDash(1, 0)
 
 
 def create_badges(data):
-    height_offset = height / 2.0 + margin
+    height_offset = (height / 2.0 + margin) if paper_size == A4 else 0
     width_offset = width / 2.0 + margin
 
-    # 2 per page, targeting A4
-    for batch in make_batches(get_value(data), 2):
+    # no need no get fancy ordering on A5
+    ordering = get_value if paper_size == A4 else enumerate
+    for batch in make_batches(ordering(data), badge_per_sheet):
 
-        draw_margins()
+        # draw_margins()
         draw_cutlines()
+        draw_page_borders()
         # draw_guidelines()
 
         canvas.translate(0, height_offset)
