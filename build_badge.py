@@ -47,13 +47,13 @@ if paper_size == A4:
 elif paper_size == A5:
     canvas = canvas.Canvas("tickets.pdf", pagesize=landscape(A5))
     height, width = A5
-    margin = 0
+    margin = 0.7 * cm
     badge_per_sheet = 1
 else:
     raise ValueError("what size is that?")
 
 section_width = width / 2.0 - margin
-section_height = height / (2.0 if paper_size == A4 else 1) - margin
+section_height = height / (2.0 if paper_size == A4 else 1) - (margin if paper_size == A4 else 0)
 
 
 def make_batches(iterable, n):
@@ -328,7 +328,7 @@ def create_badges(data):
 
         # draw_margins()
         draw_cutlines()
-        draw_page_borders()
+        # draw_page_borders()
         # draw_guidelines()
 
         canvas.translate(0, height_offset)
