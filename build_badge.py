@@ -37,7 +37,7 @@ irish_green = PCMYKColor(71, 0, 72, 40)
 irish_orange = PCMYKColor(0, 43, 91, 0)
 banner_blue = PCMYKColor(98, 82, 0, 44)
 
-paper_size = A5
+paper_size = A4
 
 if paper_size == A4:
     canvas = canvas.Canvas("tickets.pdf", pagesize=portrait(A4))
@@ -46,7 +46,7 @@ if paper_size == A4:
     badge_per_sheet = 2
 elif paper_size == A5:
     canvas = canvas.Canvas("tickets.pdf", pagesize=landscape(A5))
-    height, width = A5
+    width, height = landscape(A5)
     margin = 0
     badge_per_sheet = 1
 else:
@@ -142,6 +142,18 @@ def write_qr_code(delegate, order_num):
         mask="auto",
     )
 
+    if delegate.lunch:
+        logo_width = 60
+        logo_height = 60
+        canvas.drawImage(
+            os.path.join(here, "img", "lunch.png"),
+            (section_width - logo_width) / 2.0,
+            (section_height - logo_height) - 10 ,
+            width=logo_width,
+            height=logo_height,
+            mask="auto",
+        )
+
     # ticket num
     write_ticket_num(delegate.reference)
 
@@ -178,7 +190,7 @@ def write_badge(delegate):
     banner_width = section_width
     banner_height = section_height * .3333
     canvas.drawImage(
-        os.path.join(here, "img", "dublin_banner_2.jpg"),
+        os.path.join(here, "img", "Limerick-city.jpg"),
         0,
         section_height - banner_height,
         width=banner_width,
@@ -192,7 +204,7 @@ def write_badge(delegate):
     canvas.setFillColor(irish_green)
     canvas.setLineWidth(1.3)
 
-    python = "Pycon Ireland 2018"
+    python = "Pycon Limerick 2020"
     text_w = stringWidth(python, "BreeB", 32)
     x_pos = (section_width - text_w) / 2
     canvas.drawString(x_pos, section_height - 55, python)
@@ -229,8 +241,6 @@ def write_badge(delegate):
     y_pos = section_height * .25 - height / 4.0
     canvas.drawString(x_pos, y_pos, delegate.display_name)
 
-    speakers = ["speaker@example.ie"]
-
     # rectangle bottom
     border_thickness = section_height / 6.0
     if delegate.exhibitor:
@@ -246,7 +256,7 @@ def write_badge(delegate):
         canvas.drawString(x_pos, 25, "EXHIBITOR")
 
     else:
-        if delegate.email in speakers:
+        if delegate.speaker:
             canvas.setFillColor(irish_orange)
         else:
             canvas.setFillColor(banner_blue)
@@ -343,15 +353,19 @@ def create_badges(data):
 
 data = sorted(
     [
-        Attendee("Nïçôlàs L.", "Nïçôlàs ", "test@example.ie", "1IO0-1", 0, True),
-        Attendee("Ipsum L.", "Lorem ", "test@example.ie", "ABCD", 1, False),
-        Attendee("Lorem L.", "Nicolas ", "speaker@example.ie", "KSDF", 2, False),
-        # Attendee('Vishal V.', 'doomsday', 'mad_devop@example.ie', 'OPPP-1', 7, False),
-        # Attendee('Sic amen L.', 'Nicolas ', 'organizer@example.ie', 'OPPP-1', 3, False),
-        # Attendee('Nijwcolas L.', 'Nicolas ', 'test@example.ie', 'Z2B8-2', 4, False),
-        # Attendee('Dolor L.', 'Nicolas ', 'test@example.ie', 'ZWWX-1', 0, False),
+        # Attendee("Nïçôlàs L.", "Nïçôlàs ", "test@example.ie", "1IO0-1", 0, True, False, True),
+        # Attendee("Ipsum L.", "Lorem ", "test@example.ie", "ABCD", 1, False, True, False),
+        # Attendee("Lorem L.", "Nicolas ", "speaker@example.ie", "KSDF", 2, False, False, True),
+        Attendee('', '', '', '', 0, False, False, False),
+        Attendee('', '', '', '', 0, False, False, False),
+        # Attendee('Sic amen L.', 'Nicolas ', 'organizer@example.ie', 'OPPP-1', 3, False, True),
+        # Attendee('Nijwcolas L.', 'Nicolas ', 'test@example.ie', 'Z2B8-2', 4, False, False),
+        # Attendee('Dolor L.', 'Nicolas ', 'test@example.ie', 'ZWWX-1', 0, False, False),
     ],
     key=lambda x: x.reference,
 )
+data = get_delegates()
+from thursday import done
 
-create_badges(data)
+data = set(data) - set(done)
+create_badges(list(data))
