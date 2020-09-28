@@ -53,7 +53,7 @@ else:
     raise ValueError("what size is that?")
 
 section_width = width / 2.0 - margin
-section_height = height / (2.0 if paper_size == A4 else 1) - margin
+section_height = height / (2.0 if paper_size == A4 else 1) - (margin if paper_size == A4 else 0)
 
 
 def make_batches(iterable, n):
@@ -190,7 +190,7 @@ def write_badge(delegate):
     banner_width = section_width
     banner_height = section_height * .3333
     canvas.drawImage(
-        os.path.join(here, "img", "Limerick-city.jpg"),
+        os.path.join(here, "img", "dublin_banner_2.jpg"),
         0,
         section_height - banner_height,
         width=banner_width,
@@ -240,6 +240,8 @@ def write_badge(delegate):
     height = get_font_size(font_size, fontname)
     y_pos = section_height * .25 - height / 4.0
     canvas.drawString(x_pos, y_pos, delegate.display_name)
+
+    speakers = ["speaker@example.ie"]
 
     # rectangle bottom
     border_thickness = section_height / 6.0
@@ -353,14 +355,13 @@ def create_badges(data):
 
 data = sorted(
     [
-        # Attendee("Nïçôlàs L.", "Nïçôlàs ", "test@example.ie", "1IO0-1", 0, True, False, True),
-        # Attendee("Ipsum L.", "Lorem ", "test@example.ie", "ABCD", 1, False, True, False),
-        # Attendee("Lorem L.", "Nicolas ", "speaker@example.ie", "KSDF", 2, False, False, True),
-        Attendee('', '', '', '', 0, False, False, False),
-        Attendee('', '', '', '', 0, False, False, False),
-        # Attendee('Sic amen L.', 'Nicolas ', 'organizer@example.ie', 'OPPP-1', 3, False, True),
-        # Attendee('Nijwcolas L.', 'Nicolas ', 'test@example.ie', 'Z2B8-2', 4, False, False),
-        # Attendee('Dolor L.', 'Nicolas ', 'test@example.ie', 'ZWWX-1', 0, False, False),
+        Attendee("Nïçôlàs L.", "Nïçôlàs ", "test@example.ie", "1IO0-1", 0, True),
+        Attendee("Ipsum L.", "Lorem ", "test@example.ie", "ABCD", 1, False),
+        Attendee("Lorem L.", "Nicolas ", "speaker@example.ie", "KSDF", 2, False),
+        # Attendee('Vishal V.', 'doomsday', 'mad_devop@example.ie', 'OPPP-1', 7, False),
+        # Attendee('Sic amen L.', 'Nicolas ', 'organizer@example.ie', 'OPPP-1', 3, False),
+        # Attendee('Nijwcolas L.', 'Nicolas ', 'test@example.ie', 'Z2B8-2', 4, False),
+        # Attendee('Dolor L.', 'Nicolas ', 'test@example.ie', 'ZWWX-1', 0, False),
     ],
     key=lambda x: x.reference,
 )
