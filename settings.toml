@@ -1,0 +1,21 @@
+[API]
+account = "python-ireland"
+event = "pycon-ireland-2018"
+
+[Database]
+conn_string = "sqlite:///pycon-2018.db"
+echo = true
+
+[Printout]
+title = "Pycon Ireland 2021"
+background = "Limerick-city.jpg"
+#background = "dublin_banner_2.jpg"
+paper_size = "A5"
+show_guidelines = true
+debug = true
+
+[fonts]
+#reference_font = "UbuntuMono-R.ttf"
+reference_font = "Courier New.ttf"
+conference_font = "BreeBold.ttf"
+name_font = "BreeSerif-Regular.ttf"

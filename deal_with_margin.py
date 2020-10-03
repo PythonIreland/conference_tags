@@ -22,7 +22,7 @@ from get_tickets import get_delegates
 # set firring to None
 
 reportlab.rl_config.warnOnMissingFontGlyphs = 0
-pdfmetrics.registerFont(TTFont("ubuntu", "./fonts/UbuntuMono-R.ttf"))
+# pdfmetrics.registerFont(TTFont("ubuntu", "./fonts/UbuntuMono-R.ttf"))
 pdfmetrics.registerFont(TTFont("Bree", "./fonts/BreeSerif-Regular.ttf"))
 pdfmetrics.registerFont(TTFont("BreeB", "./fonts/BreeBold.ttf"))
 
@@ -40,7 +40,7 @@ irish_orange = PCMYKColor(0, 43, 91, 0)
 
 canvas = canvas.Canvas("margins.pdf", pagesize=A4)
 width, height = A4
-margin = .5 * cm
+margin = 0.5 * cm
 section_width = width / 2.0 - margin
 section_height = height / 2.0 - margin
 

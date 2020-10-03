@@ -1,2 +1,5 @@
-requests
+dynaconf
+marshmallow
 reportlab
+requests
+sqlalchemy

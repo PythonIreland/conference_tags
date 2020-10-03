@@ -162,9 +162,17 @@ ticket_references = [
     "ZMDP-1",
 ]
 
-lanes = 3
+ticket_references = [
+"ABCD-1", "ADCG-1", "AGDF-1", "ARTH-1", "AOUI-2", "ALKJH-2", "AWER-2", "ADER-2"
+]
+ticket_references = [
+"ABCD-1", "ADCG-1", "AGDF-1", "BFDL-1", "BDFL-2", "CASL-1", "FERG-1", "MORE-2"
+]
 
-count = Counter([r[0] for r in ticket_references])
+print(sorted(ticket_references))
+lanes = 2
+
+count = Counter([r[:1] for r in ticket_references])
 estimate = len(ticket_references) / lanes
 print(len(ticket_references))
 print(estimate)

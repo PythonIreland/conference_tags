@@ -1,3 +1,4 @@
+import datetime
 import itertools
 import math
 import os
@@ -15,64 +16,81 @@ from reportlab.graphics.shapes import Drawing
 from reportlab.lib.colors import PCMYKColor
 from reportlab.graphics.barcode import qr
 from reportlab.lib.colors import Color, black, blue, red, green, white, transparent
+from config import settings
 
-from get_tickets import Attendee
+# from get_tickets import Attendee
+from attendees import Attendee
 from get_tickets import get_delegates
-
-reportlab.rl_config.warnOnMissingFontGlyphs = 0
-pdfmetrics.registerFont(TTFont("ubuntu", "./fonts/UbuntuMono-R.ttf"))
-pdfmetrics.registerFont(TTFont("Bree", "./fonts/BreeSerif-Regular.ttf"))
-pdfmetrics.registerFont(TTFont("BreeB", "./fonts/BreeBold.ttf"))
-
-registerFontFamily(
-    "Bree", normal="Bree", bold="BreeB", italic="Bree", boldItalic="BreeB"
-)
-registerFontFamily(
-    "ubuntu", normal="ubuntu", bold="ubuntu", italic="ubuntu", boldItalic="ubuntu"
-)
+from get_tickets import get_tickets
+from utils import make_batches
+from utils import two_per_page
+from alignment_guidelines import draw_margins
+from alignment_guidelines import draw_guidelines
 
 here = os.path.dirname(__file__)
+
+reportlab.rl_config.warnOnMissingFontGlyphs = 0
+
+
+def register_fonts():
+    pdfmetrics.registerFont(
+        TTFont("reference",
+               os.path.join(here, "fonts", settings.fonts.reference_font)
+               ))
+    pdfmetrics.registerFont(
+        TTFont("conferenceFont",
+               os.path.join(here, "fonts", settings.fonts.conference_font)
+               ))
+    pdfmetrics.registerFont(
+        TTFont("nameFont",
+               os.path.join(here, "fonts", settings.fonts.name_font)
+               ))
+
+
+register_fonts()
 
 irish_green = PCMYKColor(71, 0, 72, 40)
 irish_orange = PCMYKColor(0, 43, 91, 0)
 banner_blue = PCMYKColor(98, 82, 0, 44)
 
-paper_size = A4
 
-if paper_size == A4:
-    canvas = canvas.Canvas("tickets.pdf", pagesize=portrait(A4))
-    width, height = A4
-    margin = .5 * cm
-    badge_per_sheet = 2
-elif paper_size == A5:
-    canvas = canvas.Canvas("tickets.pdf", pagesize=landscape(A5))
-    width, height = landscape(A5)
-    margin = 0
-    badge_per_sheet = 1
-else:
-    raise ValueError("what size is that?")
-
-section_width = width / 2.0 - margin
-section_height = height / (2.0 if paper_size == A4 else 1) - (margin if paper_size == A4 else 0)
+class LayoutParameters:
+    def __init__(self):
+        if settings.printout.debug:
+            output_filename = "tickets.pdf"
+        else:
+            timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S")
+            output_filename = f"tickets-{timestamp}.pdf"
 
 
-def make_batches(iterable, n):
-    iterable = iter(iterable)
-    n_rest = n - 1
+        self.paper_size = getattr(reportlab.lib.pagesizes, settings.printout.paper_size, A4)
+        if self.paper_size == A4:
+            self.canvas = canvas.Canvas(output_filename, pagesize=portrait(A4))
+            self.width, self.height = A4
+            self.margin = 0.5 * cm
 
-    for item in iterable:
-        rest = itertools.islice(iterable, n_rest)
-        yield itertools.chain((item,), rest)
+            self.height_offset = (self.height / 2.0 + self.margin)
+            self.badge_per_sheet = 2
+            self.ordering_function = two_per_page
 
+        elif self.paper_size == A5:
+            self.canvas = canvas.Canvas(output_filename, pagesize=landscape(A5))
+            self.width, self.height = landscape(A5)
+            self.margin = 0
+            self.height_offset = 0
+            self.badge_per_sheet = 1
+            self.ordering_function = enumerate
 
-def get_value(data):
-    """ used to keep tickets ordering after page cut"""
-    size = len(data)
-    nb_pages = math.ceil(size / 2.0)
-    for i in range(int(nb_pages)):
-        yield (i, data[i])
-        if i + nb_pages < size:
-            yield (i + nb_pages, data[i + nb_pages])
+        else:
+            raise ValueError("what size is that?")
+        self.width_offset = self.width / 2.0 + self.margin
+
+        # section is recto or verso
+        self.section_width = self.width / 2.0 - self.margin
+        self.section_height = (
+                self.height / (2.0 if self.paper_size == A4 else 1)
+                - (self.margin if self.paper_size == A4 else 0)
+        )
 
 
 def get_font_size(font_size, fontname):
@@ -83,39 +101,9 @@ def get_font_size(font_size, fontname):
     return height
 
 
-def write_ticket_num(ticket_num):
-    canvas.saveState()
-
-    t = canvas.beginText()
-    t.setTextRenderMode(2)
-    canvas._code.append(t.getCode())
-
-    # ticket num
-    canvas.setStrokeColor(black)
-    canvas.setFillColor(black)
-    canvas.setLineWidth(0.5)
-
-    font_size = 28
-    canvas.setFont("ubuntu", font_size)
-    text_w = stringWidth(ticket_num, "ubuntu", font_size)
-    y_pos = section_height - 20
-
-    canvas.drawString(0, y_pos, ticket_num)
-    canvas.rotate(-90)
-    canvas.drawString(-text_w, section_width - 20, ticket_num)
-    canvas.restoreState()
-
-
-def write_qr_code(delegate, order_num):
-    """
-
-    :param delegate: delegate object
-    :param order_num: serial to ease manual ordering
-    :param pos: top or bottom part of A4 (0=top)
-    :return:
-    """
+def write_qr_code(delegate, layout):
     qr_code = qr.QrCodeWidget(
-        "{} <{}>".format(delegate.full_name, delegate.email), barLevel="H"
+        "{} <{}>".format(delegate.name, delegate.email), barLevel="H"
     )
     bounds = qr_code.getBounds()
     qr_width = bounds[2] - bounds[0]
@@ -128,245 +116,244 @@ def write_qr_code(delegate, order_num):
     )
     d.add(qr_code)
     renderPDF.draw(
-        d, canvas, (section_width - qr_size) / 2.0, (section_height - qr_size) / 2.0
+        d, layout.canvas, (layout.section_width - qr_size) / 2.0, (layout.section_height - qr_size) / 2.0
     )
 
     logo_width = 60
     logo_height = 60
-    canvas.drawImage(
+    layout.canvas.drawImage(
         os.path.join(here, "img", "logo_in_qrcode.png"),
-        (section_width - logo_width) / 2.0,
-        (section_height - logo_height) / 2.0,
+        (layout.section_width - logo_width) / 2.0,
+        (layout.section_height - logo_height) / 2.0,
         width=logo_width,
         height=logo_height,
         mask="auto",
     )
 
-    if delegate.lunch:
-        logo_width = 60
-        logo_height = 60
-        canvas.drawImage(
-            os.path.join(here, "img", "lunch.png"),
-            (section_width - logo_width) / 2.0,
-            (section_height - logo_height) - 10 ,
-            width=logo_width,
-            height=logo_height,
-            mask="auto",
-        )
+
+def write_ticket_num(ticket_num, layout):
+    layout.canvas.saveState()
+
+    t = layout.canvas.beginText()
+    t.setTextRenderMode(2)
+    layout.canvas._code.append(t.getCode())
 
     # ticket num
-    write_ticket_num(delegate.reference)
+    layout.canvas.setStrokeColor(black)
+    layout.canvas.setFillColor(black)
+    layout.canvas.setLineWidth(0.5)
 
-    canvas.saveState()
+    font_size = 28
+    layout.canvas.setFont("reference", font_size)
+    text_w = stringWidth(ticket_num, "reference", font_size)
 
-    t = canvas.beginText()
+    y_pos = layout.section_height - 20
+    layout.canvas.drawString(0, y_pos, ticket_num)
+    # write again near fold line
+    layout.canvas.rotate(-90)
+    layout.canvas.drawString(-text_w, layout.section_width - 20, ticket_num)
+    layout.canvas.restoreState()
+
+
+def write_ordering_num(order_num, layout):
+    layout.canvas.saveState()
+    t = layout.canvas.beginText()
     t.setTextRenderMode(2)
-    canvas._code.append(t.getCode())
+    layout.canvas._code.append(t.getCode())
 
     # ticket ordering index
-    canvas.setStrokeColor(black)
-    canvas.setFillColor(black)
-    canvas.setLineWidth(0.5)
+    layout.canvas.setStrokeColor(black)
+    layout.canvas.setFillColor(black)
+    layout.canvas.setLineWidth(0.5)
 
     order_num = str(order_num)
     font_size = 28
-    canvas.setFont("ubuntu", font_size)
-    text_w = stringWidth(order_num, "ubuntu", font_size)
+    layout.canvas.setFont("reference", font_size)
+    text_w = stringWidth(order_num, "reference", font_size)
 
-    canvas.drawString(section_width - text_w, section_height - 20, order_num)
+    layout.canvas.drawString(layout.section_width - text_w, layout.section_height - 20, order_num)
+    x_pos = -(layout.section_height + text_w) / 2.0
+    layout.canvas.rotate(-90)
+    layout.canvas.drawString(x_pos, layout.section_width - 20, order_num)
+    layout.canvas.restoreState()
 
-    x_pos = -(section_height + text_w) / 2.0
-    canvas.rotate(-90)
-    canvas.drawString(x_pos, section_width - 20, order_num)
-    canvas.restoreState()
+
+def write_verso(attendee, ticket_index, layout):
+    write_qr_code(attendee, layout)
+    # ticket num
+    write_ticket_num(attendee.reference, layout)
+    write_ordering_num(ticket_index, layout)
 
 
-def write_badge(delegate):
-    t = canvas.beginText()
+def write_recto(delegate, layout):
+    t = layout.canvas.beginText()
     t.setTextRenderMode(2)
-    canvas._code.append(t.getCode())
+    layout.canvas._code.append(t.getCode())
 
     # banner
-    banner_width = section_width
-    banner_height = section_height * .3333
-    canvas.drawImage(
-        os.path.join(here, "img", "dublin_banner_2.jpg"),
+    banner_width = layout.section_width
+    banner_height = layout.section_height * 0.3333
+    layout.canvas.drawImage(
+        os.path.join(here, "img", settings.printout.background),
         0,
-        section_height - banner_height,
+        layout.section_height - banner_height,
         width=banner_width,
         height=banner_height,
         mask="auto",
     )
 
     # Conference name and year
-    canvas.setFont("BreeB", 32)
-    canvas.setStrokeColor(white)
-    canvas.setFillColor(irish_green)
-    canvas.setLineWidth(1.3)
+    layout.canvas.setFont("conferenceFont", 32)
+    layout.canvas.setStrokeColor(white)
+    layout.canvas.setFillColor(irish_green)
+    layout.canvas.setLineWidth(1.3)
 
-    python = "Pycon Limerick 2020"
-    text_w = stringWidth(python, "BreeB", 32)
-    x_pos = (section_width - text_w) / 2
-    canvas.drawString(x_pos, section_height - 55, python)
+    event_title = settings.printout.title
+    text_w = stringWidth(event_title, "conferenceFont", 32)
+    x_pos = (layout.section_width - text_w) / 2
+    layout.canvas.drawString(x_pos, layout.section_height - 64, event_title)
 
-    # logo
+    # logo tri snake
     logo_width = logo_height = 110
-    canvas.drawImage(
-        os.path.join(here, "img", "logo4.png"),
-        (section_width - logo_width) / 2.0,
-        (section_height - logo_height) / 2.0,  # vertical offset of logo here is needed
+    layout.canvas.drawImage(
+        os.path.join(here, "img", "tri-snakes_transparent_small_square.png"),
+        (layout.section_width - logo_width) / 2.0,
+        (layout.section_height - logo_height) / 2.0,  # vertical offset of logo here is needed
         width=logo_width,
         height=logo_height,
         mask="auto",
     )
 
     # delegate name
-    canvas.setStrokeColor(black)
-    canvas.setFillColor(irish_green)
-    canvas.setLineWidth(0.7)
+    layout.canvas.setStrokeColor(black)
+    layout.canvas.setFillColor(irish_green)
+    layout.canvas.setLineWidth(0.7)
 
-    font_size = 32
-    fontname = "Bree"
+    font_size = 36
+    fontname = "nameFont"
 
-    canvas.setFont(fontname, font_size)
-    text_w = stringWidth(delegate.display_name, "Bree", font_size)
+    layout.canvas.setFont(fontname, font_size)
+    text_w = stringWidth(delegate.display_name, fontname, font_size)
     # resize as necessary to fit
-    while text_w > section_width:
+    while text_w > layout.section_width:
         font_size -= 1
-        canvas.setFont(fontname, font_size)
-        text_w = stringWidth(delegate.display_name, "Bree", font_size)
-    x_pos = (section_width - text_w) / 2
+        layout.canvas.setFont(fontname, font_size)
+        text_w = stringWidth(delegate.display_name, fontname, font_size)
+    x_pos = (layout.section_width - text_w) / 2
 
     height = get_font_size(font_size, fontname)
-    y_pos = section_height * .25 - height / 4.0
-    canvas.drawString(x_pos, y_pos, delegate.display_name)
-
-    speakers = ["speaker@example.ie"]
+    y_pos = layout.section_height * 0.25 - height / 4.0
+    layout.canvas.drawString(x_pos, y_pos, delegate.display_name)
 
     # rectangle bottom
-    border_thickness = section_height / 6.0
+    border_thickness = layout.section_height / 6.0
     if delegate.exhibitor:
-        canvas.rect(0, 0, section_width, border_thickness, fill=1, stroke=0)
-        canvas.setStrokeColor(black)
-        canvas.setFillColor(white)
-        canvas.setLineWidth(0.7)
+        layout.canvas.rect(0, 0, layout.section_width, border_thickness, fill=1, stroke=0)
+        layout.canvas.setStrokeColor(black)
+        layout.canvas.setFillColor(white)
+        layout.canvas.setLineWidth(0.7)
 
         font_size = 32
-        canvas.setFont("Bree", font_size)
-        text_w = stringWidth("EXHIBITOR", "Bree", font_size)
-        x_pos = (section_width - text_w) / 2
-        canvas.drawString(x_pos, 25, "EXHIBITOR")
+        layout.canvas.setFont("nameFont", font_size)
+        text_w = stringWidth("EXHIBITOR", "nameFont", font_size)
+        x_pos = (layout.section_width - text_w) / 2
+        layout.canvas.drawString(x_pos, 25, "EXHIBITOR")
 
     else:
         if delegate.speaker:
-            canvas.setFillColor(irish_orange)
+            layout.canvas.setFillColor(irish_orange)
         else:
-            canvas.setFillColor(banner_blue)
-        canvas.rect(0, 0, section_width, border_thickness, fill=1, stroke=0)
+            layout.canvas.setFillColor(banner_blue)
+        layout.canvas.rect(0, 0, layout.section_width, border_thickness, fill=1, stroke=0)
 
         # level
         logo_width = logo_height = 30
         power_size = logo_width * delegate.level + 5 * (delegate.level - 1)
-        power_start_x = (section_width - power_size) / 2.0
+        power_start_x = (layout.section_width - power_size) / 2.0
         for i in range(delegate.level):
-            canvas.drawImage(
+            layout.canvas.drawImage(
                 os.path.join(here, "img", "Psf-Logo.png"),
                 power_start_x + (logo_width + 5) * i,
-                (section_height / 6 - logo_height) / 2.0,
+                (layout.section_height / 6 - logo_height) / 2.0,
                 width=logo_width,
                 height=logo_height,
                 mask="auto",
             )
 
 
-def draw_guidelines():
-    # horizontals
-    canvas.setDash(1, 8)
-    canvas.line(0, section_height * .125, width, section_height * .125)
-    canvas.line(0, section_height * .25, width, section_height * .25)
-    canvas.line(0, section_height * .5, width, section_height * .5)
-    canvas.line(0, section_height * .75, width, section_height * .75)
-    canvas.line(0, section_height * .875, width, section_height * .875)
-    canvas.setDash(2, 2)
-    canvas.line(
-        0, margin + section_height / 6.0, width, margin + section_height / 6.0
-    )  # horizontal
-    canvas.line(0, section_height * .3333, width, section_height * .3333)  # horizontal
-    canvas.line(
-        0, margin + section_height * .6666, width, margin + section_height * .6666
-    )  # horizontal
-
-    canvas.setDash(1, 0)
-
-
-def draw_page_borders():
-    canvas.setDash(1, 0)
+def draw_page_borders(layout):
+    layout.canvas.setDash(1, 0)
     # page border
-    canvas.line(0, 0, width, 0)
-    canvas.line(0, 0, 0, height)
-    canvas.line(0, height, width, height)
-    canvas.line(width, 0, width, height)
+    layout.canvas.line(0, 0, layout.width, 0)
+    layout.canvas.line(0, 0, 0, layout.height)
+    layout.canvas.line(0, layout.height, layout.width, layout.height)
+    layout.canvas.line(layout.width, 0, layout.width, layout.height)
 
 
-def draw_margins():
-    canvas.setDash(1, 4)
-    canvas.line(width / 2.0 - margin, 0, width / 2.0 - margin, height)
-    canvas.line(width / 2.0 + margin, 0, width / 2.0 + margin, height)
-    canvas.line(0, height / 2.0 + margin, width, height / 2.0 + margin)
-    canvas.line(0, height / 2.0 - margin, width, height / 2.0 - margin)
-
-    canvas.setDash(1, 0)
-
-
-def draw_cutlines():
+def draw_cutlines(layout):
     # halves
-    if paper_size == A4:
-        canvas.setDash(1, 0)
-        canvas.line(0, height / 2.0, width, height / 2.0)
+    if layout.paper_size == A4:
+        layout.canvas.setDash(1, 0)
+        layout.canvas.line(0, layout.height / 2.0, layout.width, layout.height / 2.0)
+    # folding guide
+    layout.canvas.setDash(3, 6)
+    layout.canvas.line(layout.width / 2.0, 0, layout.width / 2.0, layout.height)
 
-    canvas.setDash(3, 6)
-    canvas.line(width / 2.0, 0, width / 2.0, height)
-
-    canvas.setDash(1, 0)
+    layout.canvas.setDash(1, 0)
 
 
-def create_badges(data):
-    height_offset = (height / 2.0 + margin) if paper_size == A4 else 0
-    width_offset = width / 2.0 + margin
+def create_badges(data, layout):
+    # height_offset = (layout.height / 2.0 + layout.margin) if layout.paper_size == A4 else 0
+    # width_offset = layout.width / 2.0 + layout.margin
+    #
+    # # no need no get fancy ordering on A5
+    # ordering = two_per_page if layout.paper_size == A4 else enumerate
+    # badge_per_sheet = 2 if layout.paper_size == A4 else 1
 
-    # no need no get fancy ordering on A5
-    ordering = get_value if paper_size == A4 else enumerate
-    for batch in make_batches(ordering(data), badge_per_sheet):
+    for batch in make_batches(layout.ordering_function(data), layout.badge_per_sheet):
 
-        # draw_margins()
-        draw_cutlines()
-        draw_page_borders()
-        # draw_guidelines()
+        if settings.printout.show_guidelines:
+            draw_margins(layout)
+            draw_guidelines(layout)
 
-        canvas.translate(0, height_offset)
+        draw_cutlines(layout)
+        draw_page_borders(layout)
+
+        layout.canvas.translate(0, layout.height_offset)
         for ticket_index, attendee in batch:
-            write_qr_code(attendee, ticket_index)
-            canvas.translate(width_offset, 0)
-            write_badge(attendee)
-            canvas.translate(-width_offset, -height_offset)
-        canvas.showPage()  # finish the page, next statements should go next page
-    canvas.save()
+            write_verso(attendee, ticket_index, layout)
+            layout.canvas.translate(layout.width_offset, 0)
+            write_recto(attendee, layout)
+            layout.canvas.translate(-layout.width_offset, -layout.height_offset)
+        layout.canvas.showPage()  # finish the page, next statements should go next page
+    layout.canvas.save()
 
 
 data = sorted(
     [
-        Attendee("Nïçôlàs L.", "Nïçôlàs ", "test@example.ie", "1IO0-1", 0, True),
-        Attendee("Ipsum L.", "Lorem ", "test@example.ie", "ABCD", 1, False),
-        Attendee("Lorem L.", "Nicolas ", "speaker@example.ie", "KSDF", 2, False),
-        # Attendee('Vishal V.', 'doomsday', 'mad_devop@example.ie', 'OPPP-1', 7, False),
-        # Attendee('Sic amen L.', 'Nicolas ', 'organizer@example.ie', 'OPPP-1', 3, False),
-        # Attendee('Nijwcolas L.', 'Nicolas ', 'test@example.ie', 'Z2B8-2', 4, False),
-        # Attendee('Dolor L.', 'Nicolas ', 'test@example.ie', 'ZWWX-1', 0, False),
+        Attendee({'name': 'Nïçôlàys Laury',
+                  'responses': {'your-python-experience': 'Expert', },
+                  'last_name': 'Laur',
+                  'reference': 'OFXL-1',
+                  'first_name': 'Nïçôlàys',
+                  'updated_at': datetime.datetime(2020, 7, 7, 15, 0, 0,
+                                                  tzinfo=datetime.timezone(datetime.timedelta(0), '+0000')),
+                  'email': 'someone@example.com'}),
+        Attendee({'name': 'Nïçôlàys Laury',
+                  'responses': {'your-python-experience': 'Beginner', },
+                  'last_name': 'Laur',
+                  'reference': 'OFXL-1',
+                  'first_name': 'Nïçôlàys long name',
+                  'updated_at': datetime.datetime(2020, 5, 6, 12, 0, 0,
+                                                  tzinfo=datetime.timezone(datetime.timedelta(0), '+0000')),
+                  'email': 'someone@example.com'}),
     ],
     key=lambda x: x.reference,
 )
-data = get_delegates()
-from thursday import done
 
-data = set(data) - set(done)
-create_badges(list(data))
+layout = LayoutParameters()
+data = get_delegates()
+
+# data = [Attendee(ticket) for ticket in get_tickets(settings.API.event)]
+
+create_badges(list(data), layout)
