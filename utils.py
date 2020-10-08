@@ -1,6 +1,7 @@
 import itertools
 import math
 
+
 def make_batches(iterable, n):
     iterable = iter(iterable)
     n_rest = n - 1

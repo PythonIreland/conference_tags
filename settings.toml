@@ -11,7 +11,7 @@ title = "Pycon Ireland 2021"
 background = "Limerick-city.jpg"
 #background = "dublin_banner_2.jpg"
 paper_size = "A5"
-show_guidelines = true
+show_guidelines = false
 debug = true
 
 [fonts]

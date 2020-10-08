@@ -1,31 +1,25 @@
 import datetime
-import itertools
-import math
 import os
 
 import reportlab.rl_config
-from reportlab.lib.pagesizes import A4, A5, portrait, landscape
-from reportlab.pdfgen import canvas
-from reportlab.pdfbase.pdfmetrics import registerFontFamily
-from reportlab.pdfbase.pdfmetrics import stringWidth
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.lib.units import cm
 from reportlab.graphics import renderPDF
+from reportlab.graphics.barcode import qr
 from reportlab.graphics.shapes import Drawing
 from reportlab.lib.colors import PCMYKColor
-from reportlab.graphics.barcode import qr
-from reportlab.lib.colors import Color, black, blue, red, green, white, transparent
-from config import settings
+from reportlab.lib.colors import black, white
+from reportlab.lib.pagesizes import A4, A5, portrait, landscape
+from reportlab.lib.units import cm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.pdfmetrics import stringWidth
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfgen import canvas
 
-# from get_tickets import Attendee
+from alignment_guidelines import draw_guidelines, draw_margins
 from attendees import Attendee
-from get_tickets import get_delegates
+from repos import filter_new_records
+from config import settings
 from get_tickets import get_tickets
-from utils import make_batches
-from utils import two_per_page
-from alignment_guidelines import draw_margins
-from alignment_guidelines import draw_guidelines
+from utils import make_batches, two_per_page
 
 here = os.path.dirname(__file__)
 
@@ -34,17 +28,17 @@ reportlab.rl_config.warnOnMissingFontGlyphs = 0
 
 def register_fonts():
     pdfmetrics.registerFont(
-        TTFont("reference",
-               os.path.join(here, "fonts", settings.fonts.reference_font)
-               ))
+        TTFont("reference", os.path.join(here, "fonts", settings.fonts.reference_font))
+    )
     pdfmetrics.registerFont(
-        TTFont("conferenceFont",
-               os.path.join(here, "fonts", settings.fonts.conference_font)
-               ))
+        TTFont(
+            "conferenceFont",
+            os.path.join(here, "fonts", settings.fonts.conference_font),
+        )
+    )
     pdfmetrics.registerFont(
-        TTFont("nameFont",
-               os.path.join(here, "fonts", settings.fonts.name_font)
-               ))
+        TTFont("nameFont", os.path.join(here, "fonts", settings.fonts.name_font))
+    )
 
 
 register_fonts()
@@ -62,14 +56,15 @@ class LayoutParameters:
             timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S")
             output_filename = f"tickets-{timestamp}.pdf"
 
-
-        self.paper_size = getattr(reportlab.lib.pagesizes, settings.printout.paper_size, A4)
+        self.paper_size = getattr(
+            reportlab.lib.pagesizes, settings.printout.paper_size, A4
+        )
         if self.paper_size == A4:
             self.canvas = canvas.Canvas(output_filename, pagesize=portrait(A4))
             self.width, self.height = A4
             self.margin = 0.5 * cm
 
-            self.height_offset = (self.height / 2.0 + self.margin)
+            self.height_offset = self.height / 2.0 + self.margin
             self.badge_per_sheet = 2
             self.ordering_function = two_per_page
 
@@ -87,9 +82,8 @@ class LayoutParameters:
 
         # section is recto or verso
         self.section_width = self.width / 2.0 - self.margin
-        self.section_height = (
-                self.height / (2.0 if self.paper_size == A4 else 1)
-                - (self.margin if self.paper_size == A4 else 0)
+        self.section_height = self.height / (2.0 if self.paper_size == A4 else 1) - (
+            self.margin if self.paper_size == A4 else 0
         )
 
 
@@ -116,7 +110,10 @@ def write_qr_code(delegate, layout):
     )
     d.add(qr_code)
     renderPDF.draw(
-        d, layout.canvas, (layout.section_width - qr_size) / 2.0, (layout.section_height - qr_size) / 2.0
+        d,
+        layout.canvas,
+        (layout.section_width - qr_size) / 2.0,
+        (layout.section_height - qr_size) / 2.0,
     )
 
     logo_width = 60
@@ -171,7 +168,9 @@ def write_ordering_num(order_num, layout):
     layout.canvas.setFont("reference", font_size)
     text_w = stringWidth(order_num, "reference", font_size)
 
-    layout.canvas.drawString(layout.section_width - text_w, layout.section_height - 20, order_num)
+    layout.canvas.drawString(
+        layout.section_width - text_w, layout.section_height - 20, order_num
+    )
     x_pos = -(layout.section_height + text_w) / 2.0
     layout.canvas.rotate(-90)
     layout.canvas.drawString(x_pos, layout.section_width - 20, order_num)
@@ -218,7 +217,8 @@ def write_recto(delegate, layout):
     layout.canvas.drawImage(
         os.path.join(here, "img", "tri-snakes_transparent_small_square.png"),
         (layout.section_width - logo_width) / 2.0,
-        (layout.section_height - logo_height) / 2.0,  # vertical offset of logo here is needed
+        (layout.section_height - logo_height)
+        / 2.0,  # vertical offset of logo here is needed
         width=logo_width,
         height=logo_height,
         mask="auto",
@@ -248,7 +248,9 @@ def write_recto(delegate, layout):
     # rectangle bottom
     border_thickness = layout.section_height / 6.0
     if delegate.exhibitor:
-        layout.canvas.rect(0, 0, layout.section_width, border_thickness, fill=1, stroke=0)
+        layout.canvas.rect(
+            0, 0, layout.section_width, border_thickness, fill=1, stroke=0
+        )
         layout.canvas.setStrokeColor(black)
         layout.canvas.setFillColor(white)
         layout.canvas.setLineWidth(0.7)
@@ -264,7 +266,9 @@ def write_recto(delegate, layout):
             layout.canvas.setFillColor(irish_orange)
         else:
             layout.canvas.setFillColor(banner_blue)
-        layout.canvas.rect(0, 0, layout.section_width, border_thickness, fill=1, stroke=0)
+        layout.canvas.rect(
+            0, 0, layout.section_width, border_thickness, fill=1, stroke=0
+        )
 
         # level
         logo_width = logo_height = 30
@@ -303,13 +307,6 @@ def draw_cutlines(layout):
 
 
 def create_badges(data, layout):
-    # height_offset = (layout.height / 2.0 + layout.margin) if layout.paper_size == A4 else 0
-    # width_offset = layout.width / 2.0 + layout.margin
-    #
-    # # no need no get fancy ordering on A5
-    # ordering = two_per_page if layout.paper_size == A4 else enumerate
-    # badge_per_sheet = 2 if layout.paper_size == A4 else 1
-
     for batch in make_batches(layout.ordering_function(data), layout.badge_per_sheet):
 
         if settings.printout.show_guidelines:
@@ -329,31 +326,10 @@ def create_badges(data, layout):
     layout.canvas.save()
 
 
-data = sorted(
-    [
-        Attendee({'name': 'Nïçôlàys Laury',
-                  'responses': {'your-python-experience': 'Expert', },
-                  'last_name': 'Laur',
-                  'reference': 'OFXL-1',
-                  'first_name': 'Nïçôlàys',
-                  'updated_at': datetime.datetime(2020, 7, 7, 15, 0, 0,
-                                                  tzinfo=datetime.timezone(datetime.timedelta(0), '+0000')),
-                  'email': 'someone@example.com'}),
-        Attendee({'name': 'Nïçôlàys Laury',
-                  'responses': {'your-python-experience': 'Beginner', },
-                  'last_name': 'Laur',
-                  'reference': 'OFXL-1',
-                  'first_name': 'Nïçôlàys long name',
-                  'updated_at': datetime.datetime(2020, 5, 6, 12, 0, 0,
-                                                  tzinfo=datetime.timezone(datetime.timedelta(0), '+0000')),
-                  'email': 'someone@example.com'}),
-    ],
-    key=lambda x: x.reference,
-)
-
-layout = LayoutParameters()
-data = get_delegates()
-
-# data = [Attendee(ticket) for ticket in get_tickets(settings.API.event)]
-
-create_badges(list(data), layout)
+if __name__ == "__main__":
+    from fixture_attendees import fake_data as data
+    layout = LayoutParameters()
+    data = [Attendee(ticket) for ticket in get_tickets(settings.API.event)]
+    data = filter_new_records(data)
+    if data:
+        create_badges(data, layout)

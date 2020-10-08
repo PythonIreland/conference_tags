@@ -1,4 +1,7 @@
 from enum import Enum
+import logging
+
+log = logging.getLogger(__name__)
 
 
 class PythonLevel(Enum):
@@ -9,10 +12,10 @@ class PythonLevel(Enum):
 
 
 class Attendee:
-
     def __init__(self, loaded_schema):
         for attribute, value in loaded_schema.items():
             setattr(self, attribute, value)
+        self.in_anomaly = False
 
     @property
     def level(self):
@@ -26,10 +29,11 @@ class Attendee:
     def display_name(self):
         try:
             return "{first} {initial}.".format(
-                first=self.first_name.title(),
-                initial=self.last_name.title()[0]
+                first=self.first_name.title(), initial=self.last_name.title()[0]
             )
         except AttributeError:
+            self.in_anomaly = True
+            log.warning("XXX Fix ticket %s", self.reference)
             return "XXX Fix ticket XXX"
 
     @property

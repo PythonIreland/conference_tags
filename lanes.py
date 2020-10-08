@@ -163,10 +163,24 @@ ticket_references = [
 ]
 
 ticket_references = [
-"ABCD-1", "ADCG-1", "AGDF-1", "ARTH-1", "AOUI-2", "ALKJH-2", "AWER-2", "ADER-2"
+    "ABCD-1",
+    "ADCG-1",
+    "AGDF-1",
+    "ARTH-1",
+    "AOUI-2",
+    "ALKJH-2",
+    "AWER-2",
+    "ADER-2",
 ]
 ticket_references = [
-"ABCD-1", "ADCG-1", "AGDF-1", "BFDL-1", "BDFL-2", "CASL-1", "FERG-1", "MORE-2"
+    "ABCD-1",
+    "ADCG-1",
+    "AGDF-1",
+    "BFDL-1",
+    "BDFL-2",
+    "CASL-1",
+    "FERG-1",
+    "MORE-2",
 ]
 
 print(sorted(ticket_references))
