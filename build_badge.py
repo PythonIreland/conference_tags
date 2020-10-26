@@ -22,7 +22,6 @@ from get_tickets import get_tickets
 from utils import make_batches, two_per_page
 
 here = os.path.dirname(__file__)
-
 reportlab.rl_config.warnOnMissingFontGlyphs = 0
 
 
@@ -40,8 +39,6 @@ def register_fonts():
         TTFont("nameFont", os.path.join(here, "fonts", settings.fonts.name_font))
     )
 
-
-register_fonts()
 
 irish_green = PCMYKColor(71, 0, 72, 40)
 irish_orange = PCMYKColor(0, 43, 91, 0)
@@ -80,13 +77,9 @@ class LayoutParameters:
 
         else:
             raise ValueError("what size is that?")
-        self.width_offset = self.width / 2.0 + self.margin
 
-        # section is recto or verso
+        # section means recto or verso
         self.section_width = self.width / 2.0 - self.margin
-        # self.section_height = self.height / (2.0 if self.paper_size == A4 else 1) - (
-        #     self.margin if self.paper_size == A4 else 0
-        # )
 
 
 def get_font_size(font_size, fontname):
@@ -321,15 +314,15 @@ def create_badges(data, layout):
         layout.canvas.translate(0, layout.height_offset)
         for ticket_index, attendee in batch:
             write_verso(attendee, ticket_index, layout)
-            layout.canvas.translate(layout.width_offset, 0)
+            layout.canvas.translate(layout.section_width, 0)
             write_recto(attendee, layout)
-            layout.canvas.translate(-layout.width_offset, -layout.height_offset)
+            layout.canvas.translate(-layout.section_width, -layout.height_offset)
         layout.canvas.showPage()  # finish the page, next statements should go next page
     layout.canvas.save()
 
 
 if __name__ == "__main__":
-
+    register_fonts()
     layout = LayoutParameters()
     # data = [ticket for ticket in get_tickets(settings.API.event)]
     # data = filter_new_records(data)
