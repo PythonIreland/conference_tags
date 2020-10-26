@@ -1,28 +1,20 @@
 import itertools
-import math
 import os
 
 import reportlab.rl_config
+from reportlab.lib.colors import PCMYKColor
+from reportlab.lib.colors import black
 from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
-from reportlab.pdfbase.pdfmetrics import registerFontFamily
-from reportlab.pdfbase.pdfmetrics import stringWidth
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.units import cm
-from reportlab.graphics import renderPDF
-from reportlab.graphics.shapes import Drawing
-from reportlab.lib.colors import CMYKColor, PCMYKColor
-from reportlab.graphics.barcode import qr
-from reportlab.lib.colors import Color, black, blue, red, green, white, transparent
-
-from get_tickets import Attendee
-from get_tickets import get_delegates
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.pdfmetrics import registerFontFamily
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfgen import canvas
 
 # set firring to None
 
 reportlab.rl_config.warnOnMissingFontGlyphs = 0
-pdfmetrics.registerFont(TTFont("ubuntu", "./fonts/UbuntuMono-R.ttf"))
+# pdfmetrics.registerFont(TTFont("ubuntu", "./fonts/UbuntuMono-R.ttf"))
 pdfmetrics.registerFont(TTFont("Bree", "./fonts/BreeSerif-Regular.ttf"))
 pdfmetrics.registerFont(TTFont("BreeB", "./fonts/BreeBold.ttf"))
 
@@ -40,7 +32,7 @@ irish_orange = PCMYKColor(0, 43, 91, 0)
 
 canvas = canvas.Canvas("margins.pdf", pagesize=A4)
 width, height = A4
-margin = .5 * cm
+margin = 0.5 * cm
 section_width = width / 2.0 - margin
 section_height = height / 2.0 - margin
 

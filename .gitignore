@@ -1,6 +1,7 @@
 .idea/
 
 *.pdf
+*.db
 
-
-
+# Ignore dynaconf secret files
+.secrets.*
