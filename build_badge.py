@@ -67,6 +67,7 @@ class LayoutParameters:
             self.height_offset = self.height / 2.0 + self.margin
             self.badge_per_sheet = 2
             self.ordering_function = two_per_page
+            self.section_height = self.height / 2.0 - self.margin
 
         elif self.paper_size == A5:
             self.canvas = canvas.Canvas(output_filename, pagesize=landscape(A5))
@@ -75,6 +76,7 @@ class LayoutParameters:
             self.height_offset = 0
             self.badge_per_sheet = 1
             self.ordering_function = enumerate
+            self.section_height = self.height
 
         else:
             raise ValueError("what size is that?")
@@ -82,9 +84,9 @@ class LayoutParameters:
 
         # section is recto or verso
         self.section_width = self.width / 2.0 - self.margin
-        self.section_height = self.height / (2.0 if self.paper_size == A4 else 1) - (
-            self.margin if self.paper_size == A4 else 0
-        )
+        # self.section_height = self.height / (2.0 if self.paper_size == A4 else 1) - (
+        #     self.margin if self.paper_size == A4 else 0
+        # )
 
 
 def get_font_size(font_size, fontname):
@@ -327,9 +329,13 @@ def create_badges(data, layout):
 
 
 if __name__ == "__main__":
-    from fixture_attendees import fake_data as data
+
     layout = LayoutParameters()
-    data = [Attendee(ticket) for ticket in get_tickets(settings.API.event)]
-    data = filter_new_records(data)
+    # data = [ticket for ticket in get_tickets(settings.API.event)]
+    # data = filter_new_records(data)
+    from fixture_attendees import fake_data as data
+
     if data:
         create_badges(data, layout)
+    else:
+        print("Nothing to do")

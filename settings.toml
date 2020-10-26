@@ -10,7 +10,7 @@ echo = true
 title = "Pycon Ireland 2021"
 background = "Limerick-city.jpg"
 #background = "dublin_banner_2.jpg"
-paper_size = "A5"
+paper_size = "A4"
 show_guidelines = false
 debug = true
 

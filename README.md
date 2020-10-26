@@ -15,3 +15,5 @@ The Bree font we use id not free, we bought a licence for it.
 You'll find the ttf files in our google drive.
 
 setup the script in `settings.toml`
+
+run `build_badges.py`

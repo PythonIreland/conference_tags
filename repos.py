@@ -10,10 +10,7 @@ from attendees import Attendee
 from config import settings
 
 metadata = MetaData()
-
-engine = create_engine(settings.database.conn_string,
-                       echo=settings.database.echo)
-
+engine = create_engine(settings.database.conn_string, echo=settings.database.echo)
 attendee = Table(
     "attendees",
     metadata,
@@ -21,7 +18,6 @@ attendee = Table(
     Column("name", String(128)),
     Column("updated_at", DateTime(), default=datetime.datetime.utcnow),
 )
-
 mapper(Attendee, attendee)
 
 # metadata.drop_all(bind=engine)
@@ -32,26 +28,26 @@ session = Session()
 
 
 def filter_new_records(data):
+    """We want to consider only tickets we've never seen
+    or that have been updated"""
     res_as_dict = {
         delegate.reference: delegate.updated_at.replace(tzinfo=datetime.timezone.utc)
         for delegate in session.query(Attendee.reference, Attendee.updated_at).all()
     }
 
     new_records = [
-        delegate for delegate in data
-        if delegate.reference not in res_as_dict
+        delegate for delegate in data if delegate.reference not in res_as_dict
     ]
     updated_records = [
-        delegate for delegate in data
+        delegate
+        for delegate in data
         if (delegate.reference in res_as_dict)
-           and res_as_dict[delegate.reference] < delegate.updated_at
+        and res_as_dict[delegate.reference] < delegate.updated_at
     ]
     if updated_records:
-        stmt = (
-            attendee.delete()
-                .where(Attendee.reference.in_(
-                [r.reference for r in updated_records]
-            )))
+        stmt = attendee.delete().where(
+            Attendee.reference.in_([r.reference for r in updated_records])
+        )
         session.execute(stmt)
         session.commit()
         session.add_all(updated_records)

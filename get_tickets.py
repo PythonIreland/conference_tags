@@ -19,8 +19,8 @@ def get_tickets(event):
     """retrieves tickets from API and extract relevant data"""
     t_schema = TicketAPISchema()
     page = 1
-    # while page is not None:
-    while page < 2:
+    # while page < 2:
+    while page is not None:
         log.debug("getting page %d", page)
         r = requests.get(
             f"https://api.tito.io/v3/{ACCOUNT}/{event}/tickets?page={page}&view=extended",
@@ -33,7 +33,4 @@ def get_tickets(event):
 
 
 if __name__ == "__main__":
-    from attendees import Attendee
-
-    as_of_now = [Attendee(ticket) for ticket in get_tickets(event)]
-    pprint(as_of_now)
+    pprint([ticket for ticket in get_tickets(settings.API.event)])

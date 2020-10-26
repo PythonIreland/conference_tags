@@ -1,4 +1,5 @@
-from marshmallow import Schema, fields, EXCLUDE
+from marshmallow import Schema, fields, EXCLUDE, post_load
+from attendees import Attendee
 
 
 class TicketSchema(Schema):
@@ -14,6 +15,10 @@ class TicketSchema(Schema):
     ticket_title = fields.String(attribute="release_title")
 
     updated_at = fields.DateTime(missing=None)
+
+    @post_load
+    def make_oject(self, data, **kwargs):
+        return Attendee(data)
 
 
 class PaginationSchema(Schema):
