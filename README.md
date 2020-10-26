@@ -5,7 +5,7 @@ TITO_TOKEN = "some_secret"
 You can find your API key by signing in at https://api.tito.io.
 
 All colors in the pdf construction must be CYMK defined as we target print.
-colros are currently defined in build_badges
+colors are currently defined in build_badges
 
 Add ttf fonts in `./fonts`
 

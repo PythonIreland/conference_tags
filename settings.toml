@@ -4,7 +4,7 @@ event = "pycon-ireland-2018"
 
 [Database]
 conn_string = "sqlite:///pycon-2018.db"
-echo = true
+echo = false
 
 [Printout]
 title = "Pycon Ireland 2021"
