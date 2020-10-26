@@ -15,8 +15,8 @@ from reportlab.pdfgen import canvas
 
 reportlab.rl_config.warnOnMissingFontGlyphs = 0
 # pdfmetrics.registerFont(TTFont("ubuntu", "./fonts/UbuntuMono-R.ttf"))
-pdfmetrics.registerFont(TTFont("Bree", "./fonts/BreeSerif-Regular.ttf"))
-pdfmetrics.registerFont(TTFont("BreeB", "./fonts/BreeBold.ttf"))
+pdfmetrics.registerFont(TTFont("Bree", "../fonts/BreeSerif-Regular.ttf"))
+pdfmetrics.registerFont(TTFont("BreeB", "../fonts/BreeBold.ttf"))
 
 registerFontFamily(
     "Bree", normal="Bree", bold="BreeB", italic="Bree", boldItalic="BreeB"
@@ -30,7 +30,7 @@ here = os.path.dirname(__file__)
 irish_green = PCMYKColor(71, 0, 72, 40)
 irish_orange = PCMYKColor(0, 43, 91, 0)
 
-canvas = canvas.Canvas("margins.pdf", pagesize=A4)
+canvas = canvas.Canvas("../margins.pdf", pagesize=A4)
 width, height = A4
 margin = 0.5 * cm
 section_width = width / 2.0 - margin
