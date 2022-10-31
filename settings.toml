@@ -1,16 +1,16 @@
 [API]
 account = "python-ireland"
-event = "pycon-ireland-2018"
+event = "pycon-ireland-2022"
 
 [Database]
-conn_string = "sqlite:///pycon-2018.db"
+conn_string = "sqlite:///pycon-2022.db"
 echo = false
 
 [Printout]
-title = "Pycon Ireland 2021"
-background = "Limerick-city.jpg"
-#background = "dublin_banner_2.jpg"
-paper_size = "A4"
+title = "Pycon Ireland 2022"
+include_title = false
+background = "pycon_ireland_2022_banner.png"
+paper_size = "A5"
 show_guidelines = false
 debug = true
 
