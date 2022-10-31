@@ -31,7 +31,7 @@ class Attendee:
             return "{first} {initial}.".format(
                 first=self.first_name.title(), initial=self.last_name.title()[0]
             )
-        except AttributeError:
+        except (IndexError, AttributeError):
             self.in_anomaly = True
             log.warning("XXX Fix ticket %s", self.reference)
             return "XXX Fix ticket XXX"
