@@ -202,10 +202,11 @@ def write_recto(delegate, layout):
     layout.canvas.setFillColor(irish_green)
     layout.canvas.setLineWidth(1.3)
 
-    event_title = settings.printout.title
-    text_w = stringWidth(event_title, "conferenceFont", 32)
-    x_pos = (layout.section_width - text_w) / 2
-    layout.canvas.drawString(x_pos, layout.section_height - 64, event_title)
+    if settings.printout.include_title:
+        event_title = settings.printout.title
+        text_w = stringWidth(event_title, "conferenceFont", 32)
+        x_pos = (layout.section_width - text_w) / 2
+        layout.canvas.drawString(x_pos, layout.section_height - 64, event_title)
 
     # logo tri snake
     logo_width = logo_height = 110
@@ -324,9 +325,9 @@ def create_badges(data, layout):
 if __name__ == "__main__":
     register_fonts()
     layout = LayoutParameters()
-    # data = [ticket for ticket in get_tickets(settings.API.event)]
-    # data = filter_new_records(data)
-    from fixture_attendees import fake_data as data
+    data = [ticket for ticket in get_tickets(settings.API.event)]
+    data = filter_new_records(data)
+    # from fixture_attendees import fake_data as data
 
     if data:
         create_badges(data, layout)
