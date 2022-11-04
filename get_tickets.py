@@ -5,7 +5,6 @@ import requests
 
 from config import settings
 from models import TicketAPIModel
-from schema import TicketAPISchema
 
 log = logging.getLogger(__name__)
 ACCOUNT = settings.API.account
@@ -16,30 +15,13 @@ headers = {
 }
 
 
-def get_tickets(event):
-    """retrieves tickets from API and extract relevant data"""
-    t_schema = TicketAPISchema()
-    page = 1
-    # while page < 2:
-    while page is not None:
-        log.debug("getting page %d", page)
-        r = requests.get(
-            f"https://api.tito.io/v3/{ACCOUNT}/{event}/tickets?page={page}&view=extended",
-            headers=headers,
-        ).json()
-        data = t_schema.load(r)
-        for ticket in data["tickets"]:
-            yield ticket
-        page = data["meta"]["next_page"]
-
-
 def get_url(account: str, event: str, page: int) -> str:
     query: str = urlencode(dict(page=page, view='extended'))
     path: str = f'/v3/{account}/{event}/tickets'
     return urlunsplit(('https', 'api.tito.io', path, query, ''))
 
 
-def get_tickets_new(event):
+def get_tickets(event: str):
     page: int | None = 1
     while page is not None:
         response = requests.get(get_url(ACCOUNT, event, page), headers=headers)
@@ -55,5 +37,4 @@ def get_tickets_new(event):
 
 if __name__ == "__main__":
     print(get_url(settings.API.account, settings.API.event, 1))
-    print(list(get_tickets_new(settings.API.event)))
-    # pprint([ticket for ticket in get_tickets(settings.API.event)])
+    print(list(get_tickets(settings.API.event)))

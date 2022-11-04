@@ -1,5 +1,6 @@
 dynaconf
 marshmallow
+openpyxl
 pydantic
 pytz
 reportlab

@@ -1,8 +1,14 @@
 import datetime
+from enum import Enum
 
 import pydantic
 
-from attendees import PythonLevel
+
+class PythonLevel(Enum):
+    Beginner = 1
+    Intermediate = 2
+    Advanced = 3
+    Expert = 4
 
 
 class PaginationModel(pydantic.BaseModel):
@@ -10,15 +16,15 @@ class PaginationModel(pydantic.BaseModel):
 
 
 class TicketModel(pydantic.BaseModel):
-    first_name: str | None = None
-    last_name: str | None = None
+    first_name: str | None = ''
+    last_name: str | None = ''
     name: str | None = None
     email: str | None = None
     responses: dict
     reference: str
     release_title: str
     created_at: datetime.datetime
-    updated_at: datetime.datetime | None = None
+    updated_at: datetime.datetime
     speaker: bool = False
 
     @property
@@ -40,10 +46,13 @@ class TicketModel(pydantic.BaseModel):
     @property
     def level(self) -> int:
         try:
-            evaluation = self.responses.get("python-experience")
+            evaluation: str = self.responses.get("python-experience", '')
             return PythonLevel[evaluation].value
         except KeyError:
             return 0
+
+    def __repr__(self):
+        return f'Attendee {self.name}'
 
 
 class TicketAPIModel(pydantic.BaseModel):

@@ -43,4 +43,4 @@ tasks:
   app:badges:
     desc: Build the badges
     cmds:
-      - python build_badge.py build-new tickets.json --speakers speakers.json
+      - python build_badge.py build tickets.json --speakers speakers.json
