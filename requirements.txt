@@ -1,8 +1,8 @@
 dynaconf
 marshmallow
+pydantic
+pytz
 reportlab
 requests
 sqlalchemy
 typer
-pytz
-pydantic
