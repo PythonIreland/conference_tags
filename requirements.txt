@@ -5,3 +5,4 @@ requests
 sqlalchemy
 typer
 pytz
+pydantic
