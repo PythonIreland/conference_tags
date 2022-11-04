@@ -1,0 +1,46 @@
+# https://taskfile.dev
+version: '3'
+
+vars:
+  TITO_EVENT: pycon-ireland-2022
+  VIRTUALENV: conference_tags
+  VIRTUALENV_DIR: ~/.virtualenvs/{{ .VIRTUALENV }}
+
+tasks:
+  environment:create:
+    desc: Create the environment
+    cmds:
+      - python3 -m venv {{ .VIRTUALENV_DIR }}
+      - "{{ .VIRTUALENV_DIR }}/bin/pip install -U pip setuptools"
+
+  environment:install:
+    desc: Install the dependencies
+    cmds:
+      - "{{ .VIRTUALENV_DIR }}/bin/pip install -r requirements.txt"
+
+  environment:drop:
+    desc: Drop the environment
+    cmds:
+      - rm -rf {{ .VIRTUALENV_DIR }}
+
+  environment:reset:
+    desc: Reset the environment
+    cmds:
+      - task: environment:drop
+      - task: environment:create
+      - task: environment:install
+
+  app:tickets:download:
+    desc: Download the tickets
+    cmds:
+      - python build_badge.py download-tickets --event {{ .TITO_EVENT }}
+
+  app:sessionize:speakers:
+    desc: Convert the sessionize export to a Json file
+    cmds:
+      - python convert-sessionize-to-json.py sessionize.xlsx
+
+  app:badges:
+    desc: Build the badges
+    cmds:
+      - python build_badge.py build-new tickets.json --speakers speakers.json
