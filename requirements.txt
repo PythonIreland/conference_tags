@@ -3,3 +3,5 @@ marshmallow
 reportlab
 requests
 sqlalchemy
+typer
+pytz

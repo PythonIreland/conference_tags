@@ -1,7 +1,14 @@
 import datetime
+import functools
+import json
 import os
+import pathlib
+import typing
 
+import pydantic
+import pytz
 import reportlab.rl_config
+import typer as typer
 from reportlab.graphics import renderPDF
 from reportlab.graphics.barcode import qr
 from reportlab.graphics.shapes import Drawing
@@ -15,10 +22,10 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
 from alignment_guidelines import draw_guidelines, draw_margins
-from attendees import Attendee
-from repos import filter_new_records
 from config import settings
-from get_tickets import get_tickets
+from get_tickets import get_tickets, get_tickets_new
+from models import TicketModel, SpeakerModel
+from repos import filter_new_records
 from utils import make_batches, two_per_page
 
 here = os.path.dirname(__file__)
@@ -322,14 +329,152 @@ def create_badges(data, layout):
     layout.canvas.save()
 
 
-if __name__ == "__main__":
+class DateTimeEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, (datetime.datetime,)):
+            return obj.isoformat()
+
+
+app = typer.Typer()
+
+
+@app.command(name="build")
+def cmd_build(fake_data: bool = False):
     register_fonts()
     layout = LayoutParameters()
-    data = [ticket for ticket in get_tickets(settings.API.event)]
-    data = filter_new_records(data)
-    # from fixture_attendees import fake_data as data
+    if fake_data:
+        from fixture_attendees import fake_data as data
+    else:
+        data = [ticket for ticket in get_tickets(settings.API.event)]
+        data = filter_new_records(data)
 
     if data:
         create_badges(data, layout)
     else:
         print("Nothing to do")
+
+
+def predicate_updated_from(
+    ticket: TicketModel,
+    when: datetime.datetime,
+) -> bool:
+    return ticket.updated_at >= when  # or ticket.created_at >= when
+
+
+def inject_speakers_in_tickets(
+    tickets: list[TicketModel],
+    speakers: list[SpeakerModel],
+) -> list[TicketModel]:
+    local_speakers = {speaker.email for speaker in speakers}
+
+    return [
+        ticket.copy(update={"speaker": ticket.email in local_speakers})
+        for ticket in tickets
+    ]
+
+
+@app.command(name="build-new")
+def cmd_build_new(
+    ticket_files: typing.List[pathlib.Path],
+    speaker_files: typing.List[pathlib.Path] = typer.Option([], "--speakers"),
+    modified_at: typing.Optional[datetime.datetime] = typer.Option(None, "--from"),
+):
+    register_fonts()
+    layout = LayoutParameters()
+
+    tickets = load_tickets(ticket_files)
+    speakers = load_speakers(speaker_files)
+    tickets = inject_speakers_in_tickets(tickets, speakers)
+
+    if modified_at:
+        modified_at = modified_at.astimezone(pytz.timezone("Europe/Brussels"))
+        predicate = functools.partial(predicate_updated_from, when=modified_at)
+        tickets = [ticket for ticket in tickets if predicate(ticket)]
+
+    tickets.sort(key=lambda ticket: ticket.reference)
+
+    for ticket in sorted(tickets, key=lambda ticket: ticket.updated_at):
+        ticket: TicketModel
+        print(
+            ticket.reference,
+            ticket.name,
+            ticket.updated_at.strftime("%Y-%m-%d"),
+        )
+
+    if tickets:
+        create_badges(tickets, layout)
+    else:
+        print("Nothing to do")
+
+
+def load_speakers(speaker_files: typing.List[pathlib.Path]):
+    speakers: list[SpeakerModel] = []
+    for speaker_file in speaker_files:
+        speakers.extend(pydantic.parse_file_as(list[SpeakerModel], speaker_file))
+    return speakers
+
+
+def load_tickets(ticket_files: typing.List[pathlib.Path]):
+    tickets: list[TicketModel] = []
+    for ticket_file in ticket_files:
+        tickets.extend(pydantic.parse_file_as(list[TicketModel], ticket_file))
+    return tickets
+
+
+@app.command(name="download-tickets")
+def cmd_download_tickets(
+    store_name: str = "tickets.json",
+    event: str = settings.API.event,
+):
+    tickets: list[TicketModel] = list(get_tickets_new(event))
+    with open(store_name, "w") as fp:
+        json.dump(
+            fp=fp,
+            obj=[ticket.dict() for ticket in tickets],
+            indent=4,
+            cls=DateTimeEncoder,
+        )
+        print(f"{len(tickets)} tickets")
+
+
+@app.command(name="missing-tickets-for-speakers")
+def cmd_missing_tickets(
+    ticket_files: typing.List[pathlib.Path],
+    speaker_files: typing.List[pathlib.Path] = typer.Option([], "--speakers"),
+):
+    tickets: list[TicketModel] = load_tickets(ticket_files=ticket_files)
+    speakers: list[SpeakerModel] = load_speakers(speaker_files=speaker_files)
+
+    unique_speakers = {
+        speaker.email.lower(): speaker for speaker in speakers if speaker.email
+    }
+    unique_attendees = {ticket.email.lower() for ticket in tickets}
+
+    diff_emails = set(unique_speakers.keys()) - unique_attendees
+
+    for speaker_email in diff_emails:
+        print(unique_speakers[speaker_email].full_name, speaker_email)
+
+
+@app.command(name="print-reference")
+def cmd_print_reference(
+    ticket_files: typing.List[pathlib.Path],
+    reference: str,
+    speaker_files: typing.List[pathlib.Path] = typer.Option([], "--speakers"),
+):
+    tickets: list[TicketModel] = load_tickets(ticket_files=ticket_files)
+    speakers: list[SpeakerModel] = load_speakers(speaker_files=speaker_files)
+    tickets = inject_speakers_in_tickets(tickets, speakers)
+
+    tickets = [ticket for ticket in tickets if ticket.reference == reference]
+
+    if tickets:
+        register_fonts()
+        layout = LayoutParameters()
+        create_badges(tickets, layout)
+    else:
+        print("Nothing to do")
+
+
+if __name__ == "__main__":
+    app()
