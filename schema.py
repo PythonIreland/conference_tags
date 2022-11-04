@@ -17,7 +17,7 @@ class TicketSchema(Schema):
     updated_at = fields.DateTime(missing=None)
 
     @post_load
-    def make_oject(self, data, **kwargs):
+    def make_object(self, data, **kwargs):
         return Attendee(data)
 
 

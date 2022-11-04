@@ -1,5 +1,9 @@
 dynaconf
 marshmallow
+openpyxl
+pydantic
+pytz
 reportlab
 requests
 sqlalchemy
+typer
