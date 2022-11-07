@@ -26,6 +26,7 @@ class TicketModel(pydantic.BaseModel):
     created_at: datetime.datetime
     updated_at: datetime.datetime
     speaker: bool = False
+    exhibitor: bool = False
 
     @property
     def is_updated(self):
@@ -38,10 +39,6 @@ class TicketModel(pydantic.BaseModel):
         except (AttributeError, IndexError):
             initial = ""
         return f"{self.first_name} {initial}."
-
-    @property
-    def exhibitor(self) -> bool:
-        return False
 
     @property
     def level(self) -> int:

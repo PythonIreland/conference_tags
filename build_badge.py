@@ -365,7 +365,12 @@ def inject_speakers_in_tickets(
     local_speakers = {speaker.email for speaker in speakers}
 
     return [
-        ticket.copy(update={"speaker": ticket.email in local_speakers})
+        ticket.copy(
+            update={
+                "speaker": ticket.email in local_speakers,
+                "exhibitor": "exhibitor" in ticket.release_title.lower(),
+            }
+        )
         for ticket in tickets
     ]
 
@@ -383,6 +388,7 @@ def cmd_build_new(
     created_on: typing.Optional[datetime.datetime] = typer.Option(None, "--created-on"),
     build: bool = True,
     fake_data: bool = False,
+    limit: typing.Optional[int] = None,
 ):
     if fake_data:
         from fixture_attendees import fake_data as tickets
@@ -414,6 +420,9 @@ def cmd_build_new(
 
     if predicate:
         tickets = [ticket for ticket in tickets if predicate(ticket)]
+
+    if isinstance(limit, int):
+        tickets = tickets[:limit]
 
     for ticket in sorted(tickets, key=lambda ticket: ticket.updated_at):
         print(
