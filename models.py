@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 from enum import Enum
 
@@ -16,8 +18,8 @@ class PaginationModel(pydantic.BaseModel):
 
 
 class TicketModel(pydantic.BaseModel):
-    first_name: str | None = ''
-    last_name: str | None = ''
+    first_name: str | None = ""
+    last_name: str | None = ""
     name: str | None = None
     email: str | None = None
     responses: dict
@@ -28,6 +30,26 @@ class TicketModel(pydantic.BaseModel):
     speaker: bool = False
     exhibitor: bool = False
 
+    @classmethod
+    def make_empty(
+        cls,
+        exhibitor: bool = False,
+        speaker: bool = False,
+    ) -> TicketModel:
+        return TicketModel(
+            first_name="",
+            last_name="",
+            name="",
+            email="",
+            responses={},
+            reference="",
+            release_title="",
+            created_at=datetime.datetime.utcnow(),
+            updated_at=datetime.datetime.utcnow(),
+            speaker=speaker,
+            exhibitor=exhibitor,
+        )
+
     @property
     def is_updated(self):
         return self.created_at != self.updated_at
@@ -35,21 +57,21 @@ class TicketModel(pydantic.BaseModel):
     @property
     def display_name(self) -> str:
         try:
-            initial = self.last_name[0]
+            initial = f"{self.last_name[0]}."
         except (AttributeError, IndexError):
             initial = ""
-        return f"{self.first_name} {initial}.".title()
+        return f"{self.first_name} {initial}".title()
 
     @property
     def level(self) -> int:
         try:
-            evaluation: str = self.responses.get("python-experience", '')
+            evaluation: str = self.responses.get("python-experience", "")
             return PythonLevel[evaluation].value
         except KeyError:
             return 0
 
     def __repr__(self):
-        return f'Attendee {self.name}'
+        return f"Attendee {self.name}"
 
 
 class TicketAPIModel(pydantic.BaseModel):

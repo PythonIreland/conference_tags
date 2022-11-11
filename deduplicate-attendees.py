@@ -8,7 +8,7 @@ from models import TicketModel
 
 
 def main():
-    years = [2015, 2016, 2017, 2018, 2019, 2022]
+    years = [2015, 2016, 2017, 2018, 2019, 2020]
     ticket_files = [
         (year, pydantic.parse_file_as(list[TicketModel], f"tickets-{year}.json"))
         for year in years
@@ -41,14 +41,14 @@ def main():
     wb = Workbook()
     ws1 = wb.active
     ws1.title = "Attendees"
-    ws1.append(["Email", "Name", "Years"])
+    ws1.append(["Email", "Name"]) # , "Years"])
 
     for index, email in enumerate(sorted(attendees.keys()), 1):
         ws1.append(
             [
                 email,
                 attendees[email]["name"],
-                ",".join(map(str, attendees[email]["years"])),
+                # ",".join(map(str, attendees[email]["years"])),
             ],
         )
     wb.save("attendees.xlsx")

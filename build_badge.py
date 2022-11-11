@@ -60,10 +60,15 @@ class LayoutParameters:
             output_filename = f"tickets-{timestamp}.pdf"
 
         self.paper_size = getattr(
-            reportlab.lib.pagesizes, settings.printout.paper_size, A4
+            reportlab.lib.pagesizes,
+            settings.printout.paper_size,
+            A4,
         )
         if self.paper_size == A4:
-            self.canvas = canvas.Canvas(output_filename, pagesize=portrait(A4))
+            self.canvas = canvas.Canvas(
+                output_filename,
+                pagesize=portrait(A4),
+            )
             self.width, self.height = A4
             self.margin = 0.5 * cm
 
@@ -73,7 +78,10 @@ class LayoutParameters:
             self.section_height = self.height / 2.0 - self.margin
 
         elif self.paper_size == A5:
-            self.canvas = canvas.Canvas(output_filename, pagesize=landscape(A5))
+            self.canvas = canvas.Canvas(
+                output_filename,
+                pagesize=landscape(A5),
+            )
             self.width, self.height = landscape(A5)
             self.margin = 0
             self.height_offset = 0
@@ -328,6 +336,24 @@ def create_badges(data, layout):
     layout.canvas.save()
 
 
+def create_empty_badges(data, layout) -> None:
+    for batch in make_batches(layout.ordering_function(data), layout.badge_per_sheet):
+        if settings.printout.show_guidelines:
+            draw_margins(layout)
+            draw_guidelines(layout)
+
+        draw_cutlines(layout)
+        draw_page_borders(layout)
+
+        layout.canvas.translate(0, layout.height_offset)
+        for ticket_index, attendee in batch:
+            layout.canvas.translate(layout.section_width, 0)
+            write_recto(attendee, layout)
+            layout.canvas.translate(-layout.section_width, -layout.height_offset)
+        layout.canvas.showPage()  # finish the page, next statements should go next page
+    layout.canvas.save()
+
+
 class DateTimeEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, (datetime.datetime,)):
@@ -512,6 +538,28 @@ def cmd_print_reference(
         create_badges(tickets, layout)
     else:
         print("Nothing to do")
+
+
+@app.command(name="blank-tickets")
+def cmd_build_blank_tickets(
+    limit: int = 5,
+    exhibitor: bool = False,
+    speaker: bool = False,
+):
+    if exhibitor and speaker:
+        typer.echo("--exhibitor, --speaker are mutually exclusive")
+        typer.Exit()
+
+    register_fonts()
+    layout = LayoutParameters()
+    tickets = [
+        TicketModel.make_empty(
+            exhibitor=exhibitor,
+            speaker=speaker,
+        )
+        for i in range(limit)
+    ]
+    create_empty_badges(tickets, layout)
 
 
 if __name__ == "__main__":
