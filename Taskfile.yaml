@@ -1,20 +1,62 @@
 # https://taskfile.dev
-version: '3'
+version: "3"
 
 vars:
-  TITO_EVENT: pycon-ireland-2022
-  VIRTUALENV: conference_tags
-  VIRTUALENV_DIR: ~/.virtualenvs/{{ .VIRTUALENV }}
+  YEAR: 2025
+  EVENT: "pycon-ireland-{{.YEAR}}"
+  VIRTUALENV_DIR: .venv
+  PYTHON: "{{.VIRTUALENV_DIR}}/bin/python"
 
 tasks:
+  show:
+    silent: true
+    desc: Display current YEAR and EVENT variables
+    cmds:
+      - echo "Year {{ .YEAR }}"
+      - echo "Event {{ .EVENT }}"
+
+  show:files:
+    silent: true
+    desc: Show which files exist for {{ .EVENT }}
+    summary: |
+      Lists all generated files for the current event.
+      Useful to verify what data is available before running tasks.
+    cmds:
+      - echo "=== Event files for {{ .EVENT }} ==="
+      - ls -lh {{ .EVENT }}-*.json {{ .EVENT }}-*.xlsx {{ .EVENT }}-*.pdf 2>/dev/null || echo "No files found for {{ .EVENT }}"
+
+  check:
+    desc: Verify environment setup and required tools
+    summary: |
+      Checks if all required dependencies and files are properly configured:
+      - .secret.toml with API tokens
+      - Virtual environment
+      - Required fonts
+      - External tools (jq, httpie)
+    cmds:
+      - test -f .secret.toml && echo "[OK] .secret.toml found" || echo "[MISSING] .secret.toml"
+      - test -d {{ .VIRTUALENV_DIR }} && echo "[OK] Virtual environment found" || echo "[MISSING] Virtual environment not created"
+      - test -f fonts/UbuntuMono-R.ttf && echo "[OK] UbuntuMono font found" || echo "[MISSING] UbuntuMono font"
+      - which jq > /dev/null && echo "[OK] jq installed" || echo "[MISSING] jq not installed"
+      - which http > /dev/null && echo "[OK] httpie installed" || echo "[OPTIONAL] httpie not installed"
+
   environment:create:
-    desc: Create the environment
+    desc: Create the Python virtual environment
+    summary: |
+      Creates a new Python virtual environment and upgrades pip/setuptools.
+      Run this first when setting up the project.
     cmds:
       - python3 -m venv {{ .VIRTUALENV_DIR }}
       - "{{ .VIRTUALENV_DIR }}/bin/pip install -U pip setuptools"
 
   environment:install:
     desc: Install the dependencies
+    summary: |
+      Installs all Python dependencies from requirements.txt.
+      Virtual environment must be created first.
+    preconditions:
+      - sh: test -d {{ .VIRTUALENV_DIR }}
+        msg: "Virtual environment not found. Run 'task environment:create' first."
     cmds:
       - "{{ .VIRTUALENV_DIR }}/bin/pip install -r requirements.txt"
 
@@ -24,29 +66,215 @@ tasks:
       - rm -rf {{ .VIRTUALENV_DIR }}
 
   environment:reset:
-    desc: Reset the environment
+    desc: Reset the environment (drop + create + install)
+    summary: |
+      Completely removes and recreates the virtual environment.
+      Useful when dependencies are broken or need a fresh start.
     cmds:
       - task: environment:drop
       - task: environment:create
       - task: environment:install
 
-  app:tickets:download:
-    desc: Download the tickets
+  tito:download:checkins:
+    desc: Download the tito checkins (outputs checkins.json)
     cmds:
-      - python build_badge.py download-tickets --event {{ .TITO_EVENT }}
+      - "curl --request GET --url https://checkin.tito.io/checkin_lists/{{ .TITO_CHECKIN_TOKEN }}/checkins --header 'Accept: application/json' --header 'Authorization: Token token={{ .TITO_TOKEN }}'"
 
-  app:sessionize:speakers:
-    desc: Convert the sessionize export to a Json file
+  tito:download:tickets:
+    desc: Download tickets for {{ .EVENT }} → {{ .EVENT }}-tickets.json
+    summary: |
+      Downloads ticket data from the Tito API for the current event.
+      Requires TITO_TOKEN in .secret.toml.
+
+      Output: {{ .EVENT }}-tickets.json
+    sources:
+      - build_badge.py
+    generates:
+      - "{{ .EVENT }}-tickets.json"
     cmds:
-      - python convert-sessionize-to-json.py sessionize.xlsx
+      - "{{ .PYTHON }} build_badge.py download-tickets --event {{ .EVENT }} --store-name {{ .EVENT }}-tickets.json"
 
-  app:badges:
-    desc: Build the badges
+  tito:download:all:
+    desc: Download tickets from all previous years
     cmds:
-      - python build_badge.py build tickets.json --speakers speakers.json
+      - "{{ .VIRTUALENV_DIR }}/bin/python build_badge.py download-tickets --event pycon-ireland-2015 --store-name pycon-ireland-2015-tickets.json"
+      - "{{ .VIRTUALENV_DIR }}/bin/python build_badge.py download-tickets --event pycon-ireland-2016 --store-name pycon-ireland-2016-tickets.json"
+      - "{{ .VIRTUALENV_DIR }}/bin/python build_badge.py download-tickets --event pycon-ireland-2017 --store-name pycon-ireland-2017-tickets.json"
+      - "{{ .VIRTUALENV_DIR }}/bin/python build_badge.py download-tickets --event pycon-ireland-2018 --store-name pycon-ireland-2018-tickets.json"
+      - "{{ .VIRTUALENV_DIR }}/bin/python build_badge.py download-tickets --event pycon-ireland-2019 --store-name pycon-ireland-2019-tickets.json"
+      - "{{ .VIRTUALENV_DIR }}/bin/python build_badge.py download-tickets --event pycon-limerick-2019 --store-name pycon-limerick-2019-tickets.json"
+      - "{{ .VIRTUALENV_DIR }}/bin/python build_badge.py download-tickets --event pycon-limerick-2020 --store-name pycon-limerick-2020-tickets.json"
+      - "{{ .VIRTUALENV_DIR }}/bin/python build_badge.py download-tickets --event pycon-limerick-2023 --store-name pycon-limerick-2023-tickets.json"
+      - "{{ .VIRTUALENV_DIR }}/bin/python build_badge.py download-tickets --event pycon-ireland-2022 --store-name pycon-ireland-2022-tickets.json"
+      - "{{ .VIRTUALENV_DIR }}/bin/python build_badge.py download-tickets --event pycon-ireland-2023 --store-name pycon-ireland-2023-tickets.json"
+      - "{{ .VIRTUALENV_DIR }}/bin/python build_badge.py download-tickets --event pycon-ireland-2024 --store-name pycon-ireland-2024-tickets.json"
+      - task: tito:download:tickets
 
-  app:count-tickets:
-    desc: Count the tickets
+  tickets:graph:
+    desc: Generate a graph from {{ .EVENT }}-tickets.json
+    summary: |
+      Creates visualization graphs from ticket data.
+      Requires {{ .EVENT }}-tickets.json to exist.
+    preconditions:
+      - sh: test -f {{ .EVENT }}-tickets.json
+        msg: "{{ .EVENT }}-tickets.json not found. Run 'task tito:download:tickets' first."
+    sources:
+      - "{{ .EVENT }}-tickets.json"
     cmds:
-      - jq '. | length' tickets.json
+      - "{{ .PYTHON }} tickets-graph.py {{ .EVENT }}-tickets.json"
 
+  tickets:count:
+    desc: Count tickets in {{ .EVENT }}-tickets.json
+    summary: |
+      Displays the total number of tickets in the JSON file.
+      Requires jq to be installed.
+    preconditions:
+      - sh: test -f {{ .EVENT }}-tickets.json
+        msg: "{{ .EVENT }}-tickets.json not found. Run 'task tito:download:tickets' first."
+      - sh: which jq > /dev/null
+        msg: "jq is required but not installed. Install with: brew install jq"
+    cmds:
+      - jq '. | length' {{ .EVENT }}-tickets.json
+
+  tito:count:api:
+    desc: Count tickets for {{ .EVENT }} via Tito API
+    silent: true
+    cmds:
+      - http "https://api.tito.io/v3/python-ireland/{{ .EVENT }}/tickets?page=1&view=extended" Accept:application/json "Authorization:Token token={{ .TITO_TOKEN }}" | jq ".meta.total_count"
+
+  sessionize:convert:
+    desc: Convert {{ .EVENT }}-sessionize.xlsx → {{ .EVENT }}-speakers.json
+    summary: |
+      Converts the Sessionize Excel export to JSON format.
+      Download the Excel file from Sessionize first:
+      https://sessionize.com/app/organizer/export/excel/19814/Accepted_sessions
+
+      Input: {{ .EVENT }}-sessionize.xlsx
+      Output: {{ .EVENT }}-speakers.json
+    preconditions:
+      - sh: test -f {{ .EVENT }}-sessionize.xlsx
+        msg: "{{ .EVENT }}-sessionize.xlsx not found. Download it from Sessionize first."
+    sources:
+      - "{{ .EVENT }}-sessionize.xlsx"
+      - convert-sessionize-to-json.py
+    generates:
+      - "{{ .EVENT }}-speakers.json"
+    cmds:
+      - "{{ .PYTHON }} convert-sessionize-to-json.py {{ .EVENT }}-sessionize.xlsx {{ .EVENT }}-speakers.json"
+
+  badges:generate:
+    desc: Generate {{ .EVENT }}-badges.pdf from tickets and speakers
+    summary: |
+      Generates printable conference badges in CMYK PDF format.
+
+      Requirements:
+        - {{ .EVENT }}-tickets.json (from tito:download:tickets)
+        - {{ .EVENT }}-speakers.json (from sessionize:convert)
+
+      Output: {{ .EVENT }}-badges.pdf (CMYK print-ready)
+    preconditions:
+      - sh: test -f {{ .EVENT }}-tickets.json
+        msg: "{{ .EVENT }}-tickets.json not found. Run 'task tito:download:tickets' first."
+      - sh: test -f {{ .EVENT }}-speakers.json
+        msg: "{{ .EVENT }}-speakers.json not found. Run 'task sessionize:convert' first."
+    sources:
+      - "{{ .EVENT }}-tickets.json"
+      - "{{ .EVENT }}-speakers.json"
+      - build_badge.py
+    generates:
+      - "{{ .EVENT }}-badges.pdf"
+    cmds:
+      - rm -f {{ .EVENT }}-badges.pdf
+      - "{{ .PYTHON }} build_badge.py build {{ .EVENT }}-tickets.json --speakers {{ .EVENT }}-speakers.json --output {{ .EVENT }}-badges.pdf"
+
+  report:generate:
+    desc: Generate {{ .EVENT }}-report.xlsx merging Tito tickets and Sessionize speakers
+    summary: |
+      Creates an Excel report comparing Tito tickets and Sessionize speakers.
+      Useful for identifying speakers without tickets.
+
+      Requirements:
+        - {{ .EVENT }}-tickets.json
+        - {{ .EVENT }}-speakers.json
+
+      Output: {{ .EVENT }}-report.xlsx
+    preconditions:
+      - sh: test -f {{ .EVENT }}-tickets.json
+        msg: "{{ .EVENT }}-tickets.json not found."
+      - sh: test -f {{ .EVENT }}-speakers.json
+        msg: "{{ .EVENT }}-speakers.json not found."
+    sources:
+      - "{{ .EVENT }}-tickets.json"
+      - "{{ .EVENT }}-speakers.json"
+      - merge_sessionize_tito_emails.py
+    generates:
+      - "{{ .EVENT }}-report.xlsx"
+    cmds:
+      - "{{ .PYTHON }} merge_sessionize_tito_emails.py {{ .EVENT }}-tickets.json {{ .EVENT }}-speakers.json {{.EVENT}}-report.xlsx"
+
+  tshirts:distribution:all:
+    desc: Show t-shirt size distributions for all years (pycon-*-tickets.json)
+    cmds:
+      - "{{ .VIRTUALENV_DIR }}/bin/python ticket_by_size.py pycon-*-tickets.json"
+
+  tshirts:distribution:current:
+    desc: Show t-shirt size distributions for {{ .EVENT }}
+    preconditions:
+      - sh: test -f {{ .EVENT }}-tickets.json
+        msg: "{{ .EVENT }}-tickets.json not found."
+    cmds:
+      - "{{ .PYTHON }} ticket_by_size.py {{ .EVENT }}-tickets.json"
+
+  workflow:complete:
+    desc: Complete workflow - convert speakers, download tickets, generate badges
+    summary: |
+      Executes the complete badge generation workflow:
+      1. Convert Sessionize Excel to JSON
+      2. Download tickets from Tito
+      3. Generate badges PDF
+
+      Prerequisites:
+        - {{ .EVENT }}-sessionize.xlsx must exist
+        - .secret.toml with TITO_TOKEN configured
+    cmds:
+      - task: sessionize:convert
+      - task: tito:download:tickets
+      - task: badges:generate
+      - echo "Workflow complete! Badge PDF generated {{ .EVENT }}-badges.pdf"
+
+  clean:
+    desc: Remove all generated files for {{ .EVENT }}
+    summary: |
+      Removes all generated files for the current event ({{ .EVENT }}).
+      Use this to start fresh or free up space.
+
+      Files removed:
+        - {{ .EVENT }}-tickets.json
+        - {{ .EVENT }}-speakers.json
+        - {{ .EVENT }}-badges.pdf
+        - {{ .EVENT }}-report.xlsx
+    cmds:
+      - rm -f {{ .EVENT }}-tickets.json
+      - rm -f {{ .EVENT }}-speakers.json
+      - rm -f {{ .EVENT }}-badges.pdf
+      - rm -f {{ .EVENT }}-report.xlsx
+      - echo "Cleaned up all generated files for {{ .EVENT }}"
+
+  clean:all:
+    desc: Remove all generated files for all years
+    summary: |
+      Removes ALL generated files across all events/years.
+      Use with caution!
+
+      Files removed:
+        - pycon-*-tickets.json
+        - pycon-*-speakers.json
+        - pycon-*-badges.pdf
+        - pycon-*-report.xlsx
+    prompt: This will delete all generated files for all years. Continue?
+    cmds:
+      - rm -f pycon-*-tickets.json
+      - rm -f pycon-*-speakers.json
+      - rm -f pycon-*-badges.pdf
+      - rm -f pycon-*-report.xlsx
+      - echo "Cleaned up all generated files for all years"
