@@ -1,0 +1,19 @@
+tito_email,sessionize_email
+# Example mappings for speakers who use different emails on Tito vs Sessionize
+#
+# Format: tito_email,sessionize_email
+#
+# Use cases:
+# - Speaker bought ticket with work email but registered on Sessionize with personal email
+# - Speaker changed email between Sessionize registration and ticket purchase
+# - Misspelled email that needs correction
+#
+# Example entries:
+# john.doe@company.com,john.personal@gmail.com
+# jane.smith@work.com,jane@example.org
+#
+# Instructions:
+# 1. Copy this file to emails.mapping.csv (without .example)
+# 2. Add your actual email mappings (one per line)
+# 3. Remove the example entries and comments
+# 4. The file will be automatically ignored by git
