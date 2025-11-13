@@ -172,6 +172,9 @@ The `Taskfile.yaml` provides convenient commands for all operations. Use `task -
 - `task environment:drop` - Remove virtual environment
 - `task environment:reset` - Reset environment (drop + create + install)
 
+### Code Quality
+- `task format:ruff` - Format all Python files with ruff
+
 ### Data Download (Tito)
 - `task tito:download:tickets` - Download tickets for current event → `pycon-ireland-YYYY-tickets.json`
 - `task tito:download:all` - Download tickets from all previous years
@@ -239,6 +242,22 @@ To remove ALL generated files across all years:
 ```bash
 task clean:all
 ```
+
+### Formatting Code
+
+To format all Python files in the project with ruff:
+
+```bash
+task format:ruff
+```
+
+To format a specific file:
+
+```bash
+task format:ruff -- build_badge.py
+```
+
+Ruff is a fast Python linter and formatter that ensures consistent code style across the project.
 
 ### Email Mapping for Speakers
 

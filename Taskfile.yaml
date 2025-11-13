@@ -75,6 +75,21 @@ tasks:
       - task: environment:create
       - task: environment:install
 
+  format:ruff:
+    desc: Format Python code with ruff
+    summary: |
+      Formats all Python files in the project using ruff.
+      Ruff is a fast Python linter and formatter.
+      
+      Usage:
+        task format:ruff               # Format all .py files
+        task format:ruff -- file.py    # Format specific file
+    preconditions:
+      - sh: test -d {{ .VIRTUALENV_DIR }}
+        msg: "Virtual environment not found. Run 'task environment:create' first."
+    cmds:
+      - "{{ .PYTHON }} -m ruff format {{.CLI_ARGS | default \"*.py\"}}"
+
   tito:download:checkins:
     desc: Download the tito checkins (outputs checkins.json)
     cmds:
