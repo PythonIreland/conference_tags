@@ -25,12 +25,8 @@ from reportlab.pdfgen import canvas
 
 from alignment_guidelines import draw_guidelines, draw_margins
 from config import settings
-from get_tickets import (
-    get_tickets,
-    get_api_checkin_lists,
-    get_api_checkin_lists_checkins,
-)
-from models import TicketModel, SpeakerModel, CheckinAPIModel
+from get_tickets import get_tickets
+from models import TicketModel, SpeakerModel
 from utils import make_batches, two_per_page
 
 here = os.path.dirname(__file__)
@@ -553,17 +549,26 @@ def inject_speakers_in_tickets(
     ]
 
 
-
 @app.command(name="build")
 def cmd_build_new(
     ticket_files: typing.Annotated[list[pathlib.Path], typer.Argument()],
-    speaker_files: typing.Annotated[list[pathlib.Path], typer.Option("--speakers", default_factory=list)],
+    speaker_files: typing.Annotated[
+        list[pathlib.Path], typer.Option("--speakers", default_factory=list)
+    ],
     output: typing.Annotated[pathlib.Path | None, typer.Option("--output")] = None,
-    updated_from: typing.Annotated[datetime.datetime | None, typer.Option("--updated-from")] = None,
-    created_from: typing.Annotated[datetime.datetime | None, typer.Option("--created-from")] = None,
-    created_on: typing.Annotated[datetime.datetime | None, typer.Option("--created-on")] = None,
+    updated_from: typing.Annotated[
+        datetime.datetime | None, typer.Option("--updated-from")
+    ] = None,
+    created_from: typing.Annotated[
+        datetime.datetime | None, typer.Option("--created-from")
+    ] = None,
+    created_on: typing.Annotated[
+        datetime.datetime | None, typer.Option("--created-on")
+    ] = None,
     build: typing.Annotated[bool, typer.Option("--build/--no-build")] = True,
-    fake_data: typing.Annotated[bool, typer.Option("--fake-data/--no-fake-data")] = False,
+    fake_data: typing.Annotated[
+        bool, typer.Option("--fake-data/--no-fake-data")
+    ] = False,
     limit: typing.Annotated[int | None, typer.Option("--limit")] = None,
 ):
     """Build badges from ticket JSON files, with optional filtering.
@@ -835,36 +840,6 @@ def cmd_print_speaker_tickets(
         layout = LayoutParameters()
 
         create_badges(ticket_speakers, layout)
-
-
-@app.command("checkin-list")
-def cmd_get_checkin_list():
-    """Fetch and print available check-in lists from the API."""
-    instance = CheckinAPIModel.model_validate(
-        get_api_checkin_lists(
-            settings.API.account,
-            settings.API.event,
-        ),
-    )
-    for checkin in instance.checkin_lists:
-        print(
-            checkin.slug,
-            checkin.title,
-            checkin.tickets_count,
-            checkin.checked_in_count,
-            checkin.checked_in_percent,
-        )
-
-
-@app.command("get-checkins")
-def cmd_get_checkins(checkin: str):
-    """Download check-ins for a given list and persist them to JSON.
-
-    Args:
-        checkin: Check-in list slug/identifier.
-    """
-    with open("checkins.json", "w") as fp:
-        json.dump(fp=fp, obj=get_api_checkin_lists_checkins(checkin))
 
 
 if __name__ == "__main__":
