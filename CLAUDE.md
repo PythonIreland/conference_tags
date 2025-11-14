@@ -43,9 +43,10 @@ task format:ruff -- file.py   # Format specific file
 
 ### Utilities
 ```bash
-task check           # Verify setup (fonts, config, tools)
-task show:files      # List generated files for current year
-task clean           # Remove generated files for current year
+task check                      # Verify setup (fonts, config, tools)
+task show:files                 # List generated files for current year
+task clean                      # Remove generated files for current year
+task tickets:update-references  # Update ticket references from mapping file
 ```
 
 ## Configuration System
@@ -122,6 +123,22 @@ The Taskfile.yaml uses a YEAR variable (default: 2025) to construct file names l
   - Joins tickets and speakers DataFrames on email (with mapping support)
   - Generates 4 sheets: All Tickets, All Speakers, Missing Speakers, Speakers with Ticket
 - **Output**: `pycon-ireland-YYYY-report.xlsx`
+
+### 6. Ticket Reference Updates (Optional)
+**Script**: `update-ticket-references.py`
+- **Purpose**: Modify ticket reference codes based on a mapping file
+- **Input**: tickets JSON + reference-mapping.json
+- **Process**:
+  - Loads and validates tickets using TicketModel
+  - Applies reference transformations from JSON mapping
+  - Supports dry-run mode for previewing changes
+  - Uses Pydantic TypeAdapter for validation
+- **Output**: Updated tickets JSON with new reference codes
+- **Use Cases**:
+  - Anonymizing ticket data for testing
+  - Creating custom reference codes
+  - Migrating between reference systems
+- **Mapping Format**: JSON object with `{"OLD-REF": "NEW-REF"}` pairs
 
 ## Data Models (models.py)
 

@@ -210,6 +210,7 @@ The `Taskfile.yaml` provides convenient commands for all operations. Use `task -
 ### Analysis & Reporting
 - `task tickets:count` - Count tickets from local JSON file (requires jq)
 - `task tickets:graph` - Generate ticket graphs
+- `task tickets:update-references` - Update ticket references from mapping file → `pycon-ireland-YYYY-tickets-updated.json`
 - `task tshirts:distribution:current` - T-shirt size distribution for current year
 - `task tshirts:distribution:all` - T-shirt size distribution for all years
 
@@ -332,6 +333,61 @@ cp emails.mapping.csv.example emails.mapping.csv
 
 **Note:** The actual `emails.mapping.csv` file is automatically ignored by git (see `.gitignore`) as it may contain personal information.
 
+### Updating Ticket References
+
+Sometimes you need to modify ticket reference codes (the unique identifiers like "BBGQ-1"). This is useful for:
+- Anonymizing ticket data for testing or demonstrations
+- Creating custom reference codes for internal use
+- Migrating between different reference systems
+
+#### Creating a Mapping File
+
+Create a `reference-mapping.json` file in the project root with the old and new reference codes:
+
+```json
+{
+    "BBGQ-1": "KARA-TE",
+    "XYZA-2": "JUDO-42",
+    "TEST-3": "DEMO-99"
+}
+```
+
+#### Using the Task Command
+
+```bash
+# Preview changes without modifying files
+task tickets:update-references -- --dry-run
+
+# Apply the changes
+task tickets:update-references
+```
+
+This will:
+1. Read your tickets from `pycon-ireland-YYYY-tickets.json`
+2. Apply the reference mappings from `reference-mapping.json`
+3. Output the updated tickets to `pycon-ireland-YYYY-tickets-updated.json`
+
+#### Direct Script Usage
+
+You can also use the script directly:
+
+```bash
+# Update references
+python update-ticket-references.py \
+    pycon-ireland-2025-tickets.json \
+    reference-mapping.json \
+    pycon-ireland-2025-tickets-updated.json
+
+# Preview changes (dry run)
+python update-ticket-references.py \
+    pycon-ireland-2025-tickets.json \
+    reference-mapping.json \
+    pycon-ireland-2025-tickets-updated.json \
+    --dry-run
+```
+
+**Note:** The `reference-mapping.json` file is automatically ignored by git to prevent accidental commits of potentially sensitive mappings. An example template is provided in `reference-mapping.example.json`.
+
 ## Technical Details
 
 ### Color and Printing
@@ -355,6 +411,7 @@ The project includes several Python scripts:
   - `download-tickets` - Downloads tickets from Tito API
   - `build` - Generates the badge PDF from tickets and speakers JSON files
   - `blank-tickets` - Generates blank badges for last-minute attendees
+- **`update-ticket-references.py`** - Updates ticket reference codes based on a JSON mapping file
 
 ### Alternative Usage
 
@@ -372,4 +429,10 @@ python build_badge.py build pycon-ireland-2025-tickets.json --speakers pycon-ire
 
 # Generate blank badges
 python build_badge.py blank-tickets --limit 1
+
+# Update ticket references
+python update-ticket-references.py \
+    pycon-ireland-2025-tickets.json \
+    reference-mapping.json \
+    pycon-ireland-2025-tickets-updated.json
 ```

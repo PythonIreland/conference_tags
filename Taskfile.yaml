@@ -151,6 +151,39 @@ tasks:
     cmds:
       - jq '. | length' {{ .EVENT }}-tickets.json
 
+  tickets:update-references:
+    desc: Update ticket references using a mapping file
+    summary: |
+      Updates ticket reference codes based on a JSON mapping file.
+      Useful for anonymizing data or creating custom reference codes.
+
+      Requirements:
+        - Input tickets JSON file
+        - reference-mapping.json with old→new reference mappings
+
+      Mapping file format:
+        {
+          "OLD-REF-1": "NEW-REF-1",
+          "OLD-REF-2": "NEW-REF-2"
+        }
+
+      Usage:
+        task tickets:update-references              # Update current year tickets
+        task tickets:update-references -- --dry-run # Preview changes
+    preconditions:
+      - sh: test -f {{ .EVENT }}-tickets.json
+        msg: "{{ .EVENT }}-tickets.json not found. Run 'task tito:download:tickets' first."
+      - sh: test -f reference-mapping.json
+        msg: "reference-mapping.json not found. Create it based on reference-mapping.example.json"
+    sources:
+      - "{{ .EVENT }}-tickets.json"
+      - reference-mapping.json
+      - update-ticket-references.py
+    generates:
+      - "{{ .EVENT }}-tickets-updated.json"
+    cmds:
+      - "{{ .PYTHON }} update-ticket-references.py {{ .EVENT }}-tickets.json reference-mapping.json {{ .EVENT }}-tickets-updated.json {{.CLI_ARGS}}"
+
   tito:count:api:
     desc: Count tickets for {{ .EVENT }} via Tito API
     silent: true
