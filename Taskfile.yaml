@@ -202,6 +202,24 @@ tasks:
       - rm -f {{ .EVENT }}-badges.pdf
       - "{{ .PYTHON }} build_badge.py build {{ .EVENT }}-tickets.json --speakers {{ .EVENT }}-speakers.json --output {{ .EVENT }}-badges.pdf"
 
+  badges:blank:
+    desc: Generate blank-tickets.pdf with empty badges
+    summary: |
+      Generates blank conference badges for last-minute attendees.
+      Uses the blank-tickets command to create badges without attendee data.
+
+      Usage:
+        task badges:blank              # Generate 1 blank badge (default)
+        task badges:blank -- --limit 5 # Generate 5 blank badges
+
+      Output: blank-tickets.pdf
+    sources:
+      - build_badge.py
+    generates:
+      - blank-tickets.pdf
+    cmds:
+      - "{{ .PYTHON }} build_badge.py blank-tickets {{.CLI_ARGS | default \"--limit 1\"}}"
+
   report:generate:
     desc: Generate {{ .EVENT }}-report.xlsx merging Tito tickets and Sessionize speakers
     summary: |
