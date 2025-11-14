@@ -13,6 +13,9 @@ tickets.png
 tickets.pdf
 emails.mapping.csv
 
+# Reference mapping files (may contain sensitive data)
+reference-mapping.json
+
 # Any other generated data files
 *.csv
 
