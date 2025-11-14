@@ -56,8 +56,10 @@ class TicketModel(pydantic.BaseModel):
 
     @property
     def display_name(self) -> str:
+        initial = ""
         try:
-            initial = f"{self.last_name[0]}."
+            if self.last_name:
+                initial = f"{self.last_name[0]}."
         except (AttributeError, IndexError):
             initial = ""
         return f"{self.first_name} {initial}".title()

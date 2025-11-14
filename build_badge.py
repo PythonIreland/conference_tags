@@ -7,16 +7,15 @@ import pathlib
 import typing
 
 import pandas as pd
-from pydantic import TypeAdapter
 import pytz
 import reportlab.rl_config
 import typer as typer
+from pydantic import TypeAdapter
 from reportlab.graphics import renderPDF
 from reportlab.graphics.barcode import qr
 from reportlab.graphics.shapes import Drawing
-from reportlab.lib.colors import PCMYKColor
-from reportlab.lib.colors import black, white
-from reportlab.lib.pagesizes import A4, A5, portrait, landscape
+from reportlab.lib.colors import PCMYKColor, black, white
+from reportlab.lib.pagesizes import A4, A5, landscape, portrait
 from reportlab.lib.units import cm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.pdfmetrics import stringWidth
@@ -26,7 +25,7 @@ from reportlab.pdfgen import canvas
 from alignment_guidelines import draw_guidelines, draw_margins
 from config import settings
 from get_tickets import get_tickets
-from models import TicketModel, SpeakerModel
+from models import SpeakerModel, TicketModel
 from utils import make_batches, two_per_page
 
 here = os.path.dirname(__file__)
@@ -306,14 +305,19 @@ def write_recto(delegate: TicketModel, layout):
         layout.canvas.drawString(x_pos, layout.section_height - 64, event_title)
 
     # logo tri snake
-    logo_width = logo_height = 110
+    logo_width = 300 / 2
+    logo_height = 240 / 2
+    # logo_width = logo_height = 110
     layout.canvas.drawImage(
-        os.path.join(here, "img", "tri-snakes_transparent_small_square.png"),
+        # os.path.join(here, "img", "tri-snakes_transparent_small_square.png"),
+        os.path.join(
+            here, "img", "Jentic-Primary-BrandGreen-TransparentBG-1200.max-300x240.png"
+        ),
         (layout.section_width - logo_width) / 2.0,
-        (layout.section_height - logo_height)
-        / 2.0,  # vertical offset of logo here is needed
+        (layout.section_height - logo_height) / 2.0,
         width=logo_width,
         height=logo_height,
+        preserveAspectRatio=True,
         mask="auto",
     )
 
