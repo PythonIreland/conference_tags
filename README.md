@@ -154,6 +154,26 @@ This command:
 - Uses CMYK colors suitable for professional printing
 - Applies the configured fonts and styling
 
+#### Step 5: Generate Blank Badges (Optional)
+
+For last-minute attendees or walk-ins at the conference, you can generate blank badges that can be filled in by hand.
+
+```bash
+task badges:blank
+```
+
+This command generates a single blank badge by default. To generate multiple blank badges, use:
+
+```bash
+task badges:blank -- --limit 5
+```
+
+This command:
+- Generates `blank-tickets.pdf` with the specified number of blank badges
+- Uses the same styling and layout as regular badges
+- Creates badges without attendee names or QR codes
+- Perfect for on-site registrations or replacements
+
 ## Available Tasks
 
 The `Taskfile.yaml` provides convenient commands for all operations. Use `task --list` to see all available tasks, or `task --summary <task-name>` for detailed information about a specific task.
@@ -184,6 +204,7 @@ The `Taskfile.yaml` provides convenient commands for all operations. Use `task -
 ### Data Processing
 - `task sessionize:convert` - Convert Sessionize Excel to JSON (with validation)
 - `task badges:generate` - Generate badge PDF (with precondition checks)
+- `task badges:blank` - Generate blank badges for last-minute attendees → `blank-tickets.pdf`
 - `task report:generate` - Generate Excel report merging Tito and Sessionize data
 
 ### Analysis & Reporting
@@ -333,6 +354,7 @@ The project includes several Python scripts:
 - **`build_badge.py`** - Main script with subcommands:
   - `download-tickets` - Downloads tickets from Tito API
   - `build` - Generates the badge PDF from tickets and speakers JSON files
+  - `blank-tickets` - Generates blank badges for last-minute attendees
 
 ### Alternative Usage
 
@@ -347,4 +369,7 @@ python build_badge.py download-tickets --event pycon-ireland-2025 --store-name p
 
 # Generate badges
 python build_badge.py build pycon-ireland-2025-tickets.json --speakers pycon-ireland-2025-speakers.json --output pycon-ireland-2025-badges.pdf
+
+# Generate blank badges
+python build_badge.py blank-tickets --limit 1
 ```
