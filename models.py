@@ -41,13 +41,15 @@ class TicketModel(pydantic.BaseModel):
             last_name="",
             name="",
             email="",
-            responses={},
             reference="",
             release_title="",
             created_at=datetime.datetime.utcnow(),
             updated_at=datetime.datetime.utcnow(),
             speaker=speaker,
             exhibitor=exhibitor,
+            responses={
+                "python-experience": "Beginner",
+            },
         )
 
     @property

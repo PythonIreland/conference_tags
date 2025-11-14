@@ -305,16 +305,16 @@ def write_recto(delegate: TicketModel, layout):
         layout.canvas.drawString(x_pos, layout.section_height - 64, event_title)
 
     # logo tri snake
-    logo_width = 300 / 2
-    logo_height = 240 / 2
+    # logo_width = 300 / 2
+    # logo_height = 240 / 2
+    logo_height = 960 * 0.5
+    logo_width = 720 * 0.5
     # logo_width = logo_height = 110
     layout.canvas.drawImage(
         # os.path.join(here, "img", "tri-snakes_transparent_small_square.png"),
-        os.path.join(
-            here, "img", "Jentic-Primary-BrandGreen-TransparentBG-1200.max-300x240.png"
-        ),
+        os.path.join(here, "img", "tri-snake-jentic.png"),
         (layout.section_width - logo_width) / 2.0,
-        (layout.section_height - logo_height) / 2.0,
+        (layout.section_height - logo_height) / 2.0 - 30,
         width=logo_width,
         height=logo_height,
         preserveAspectRatio=True,
